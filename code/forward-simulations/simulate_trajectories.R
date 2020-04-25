@@ -90,9 +90,6 @@ simulate_trajectories <- function(
       mutate(Period = ifelse(Date > Sys.Date(), "Future", "Past"))
   } else {
     
-    # browser()
-    
-    
     last_time <- obs_sim %>%
       filter(time == max(time)) %>%
       dplyr::select(.id, cases, hosps, deaths)
@@ -107,7 +104,7 @@ simulate_trajectories <- function(
              dif2 = (obs_hosps - hosps)^2,
              dif3 = (obs_deaths - deaths)^2) %>%
       group_by(.id) %>%
-      mutate(totdif = mean(c(dif1, dif2, dif3))) %>%
+      mutate(totdif = mean(c(dif1, dif2, dif3), na.rm = TRUE)) %>%
       ungroup() %>%
       filter(totdif == min(totdif)) %>%
       pull(.id) 

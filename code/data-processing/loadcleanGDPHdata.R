@@ -21,7 +21,7 @@ loadcleanGDPHdata <- function(use_these_locations, start_date = "2020-03-01")
     us_clean$hosps <- NA #set to NA    
     
     pseudo_data <- data.frame(
-      Date = seq.Date(from = as.Date(start_date), to = Sys.Date(), by = "day"),
+      Date = seq.Date(from = as.Date(start_date), to = max(us_clean$Date), by = "day"),
       hold = NA)
     
     pomp_data <- us_clean %>% 

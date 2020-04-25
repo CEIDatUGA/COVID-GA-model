@@ -36,7 +36,7 @@ loadcleanCTdata <- function(use_these_locations, start_date = "2020-03-01")
       dplyr::select(Date, Location, cases, hosps, deaths) 
     
     pseudo_data <- data.frame(
-      Date = seq.Date(from = as.Date(start_date), to = Sys.Date(), by = "day"),
+      Date = seq.Date(from = as.Date(start_date), to = max(us_ct_clean$Date), by = "day"),
       hold = NA)
     
     pomp_data <- us_ct_clean %>% 
