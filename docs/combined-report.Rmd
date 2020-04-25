@@ -1,0 +1,224 @@
+---
+title: "COVID-19 Model Fitting and Forecasting Report"
+author: "Andrew Tredennick, Andreas Handel, and John Drake"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+```
+
+```{r libs}
+library(pomp)
+library(tidyverse)
+library(here)
+library(googlesheets4)
+```
+
+
+
+## Overview 
+
+Given the importance of the COVID-19 pandemic and the the various difficulties inherent in fitting the transmission model, we will use three different methods of inference.
+First, we will use maximum likelihood by iterated filtering (MIF) to quickly hone in on the likelihood surface.
+Second, we will use particle MCMC to estimate uncertainty around parameter estimates, using the MIF MLEs as starting points for the MCMC.
+We will also employ informative priors to make parameters identifiable.
+Third, and in parallel to the pMCMC, we will use Approximate Bayesian Computation (ABC-MCMC) to also estimate uncertainty around parameters.
+In concert, the three methods of model fitting should allow us to make robust inference on model parameters and, in turn, generate meaningful forecasts with clearly propagated uncertainty.
+All model simulation and inference will use `pomp` functions.
+
+
+
+## The Model 
+
+### Model Overview
+
+This model tracks susceptibles, pre-symptomatic, asymptomatic, symptomatic, diagnosed, hopspitalized, dead and recovered hosts. 
+The following compartments are included:  
+
+* **S** - uninfected and susceptible individuals 
+* **E** - individuals who are infected and do not yet show symptoms. Those individuals can be infectious.
+* **I~a~** - individuals who are infected and do not show symptoms. Those individuals are likely infectious, but the model allows to adjust this.
+* **I~su~** - individuals who are infected and show symptoms. Those individuals are likely infectious. Individuals in this compartment never get diagnosed and recover.
+* **I~sd~** - individuals who are infected and show symptoms. Those individuals are likely infectious. Individuals in this compartment will get diagnosed and move to **C**.
+* **C** - individuals who have been diagnosed as cases. Those individuals are likely isolated and not infectious, but the model allows to adjust this.
+* **H** - individuals who have been hospitalized. Those individuals are likely isolated and not infectious, but the model allows to adjust this.
+* **R** - recovered/removed individuals. Those individuals have recovered and are immune. 
+* **D** - individuals who died from the infection. 
+
+To allow more realistic distributions of movement through compartments, several of these compartments are internally split into dummy stages. Dummy stages are currently:
+
+* **E** - 4 compartments
+* **I~a~** - 4 compartments 
+* **I~su~** - 4 compartments
+* **I~sd~** - 4 compartments
+* **C** - 4 compartments
+* **H** - 4 compartments
+
+
+The included processes/mechanisms are the following:
+
+* Susceptible individuals ($S$`) can become infected by individuals in the $E$, $I_a$, $I_s$, $I_d$, $C$, and $H$ stages. Rates of transmission from these stages can be adjusted individually.
+* All infected hosts first enter the presymptomatic stage and move through the $E$ dummy compartments. At the end of the $E$ stage, a fraction moves into the $I_a$ stage, another fraction moves into the $I_{su}$ stage,  the remainder into the $I_{sd}$ stage.
+* Individuals in the asymptomatic $I_a$ stage are assumed to never be diagnosed and eventually recover.
+* Individuals in the symptomatic $I_{su}$ stage are assumed to remain undiagnosed and eventually recover.
+* Individuals in the symptomatic $I_{sd}$ stage are assumed to be diagnosed after some time and move into the $C$ stage.
+* A fraction of individuals in the $C$ stage will naturally recover, without the need for hospitalization. The remainder moves into the $H$ stage.
+* A fraction of individuals in the $H$ stage will recover, the remainder dies.
+
+### Interventions
+
+The following interventions are implemented:
+
+* Social distancing, is assumed to reduce all transmission rates by some factor. This is provided as covariate based on mobility data.
+* Increased speed of detection, which is assumed to increase at a sigmoidal manner up to a maximum value.
+* Increased level of detection, which is assumed to increase the fraction of symptomatic individuals that move into the $I_{sd}$ compartment and will eventually be diagnosed. It is assumed to increase at a sigmoidal manner up to a maximum value.
+
+
+### Model Implementation
+The flow diagram for the model implemented in this app is:
+
+```{r pomp-model,  fig.cap='MIF trace plot'}
+knitr::include_graphics(here("docs",'pomp-model.png'))
+```
+
+### Model Parameters
+
+```{r googlesheets, echo = FALSE}
+#pars <- googlesheets4::read_sheet("https://docs.google.com/spreadsheets/d/10K_3bPck0GOCAfuUQtyZ-KEmwf6FQE3CcpSe36HtL4c/edit?usp=sharing", sheet = 2)
+#saveRDS(pars,'partable.rds')
+pars <- readRDS('partable.rds')
+ptable <- pars[,c(3,4,8)]
+knitr::kable(ptable)
+```
+
+
+## Details for this model run
+
+```{r load-scenario}
+#load data
+filename = here('output','output_mif.rds')
+mif_res <- readRDS(filename)
+mifs = mif_res$mif_runs
+pfs = mif_res$pf_runs
+pomp_model = mif_res$pomp_model
+pomp_data = mif_res$pomp_data   
+par_var_list = mif_res$par_var_list
+datasource = mif_res$datasource
+location = mif_res$location
+traceplot = mif_res$traceplot
+par_table = mif_res$partable
+par_table_natural = mif_res$partable_natural
+```
+
+
+
+### Parameters to estimate
+
+For this run, the following parameters and initial conditions are estimated:
+
+```{r par-est}
+print(par_var_list$params_to_estimate)
+print(par_var_list$inivals_to_estimate)
+```
+
+
+
+## Data and location
+
+This run fits data from `r datasource` for state `r location`.
+
+Data is retrieved and processed by scripts in the `data-processing` folder and saved to the `data` folder.
+
+```{r data, fig.height=2.5}
+# Plot the data to date
+pl <- pomp_data %>%
+  dplyr::select(-time) %>%
+  gather(key = "Observation", value = "Persons", -Date) %>%
+  ggplot(aes(x = Date, y = Persons)) +
+  geom_line() +
+  geom_point() +
+  facet_wrap(~Observation, scales = "free_y")
+plot(pl)
+```
+
+We also use data on traveling distance as a metric of social distancing.
+It is a relative metric ($\phi(t)$) that we assume linearly impacts the force of infection, such that the force of infection at time *t*, $f(t)$, is reduced to: $\phi(t) \times f(t)$.
+Here is $\phi(t)$ over time.
+
+```{r unacast}
+phi <- readRDS(here('output',"rel-beta-change-covar.RDS")) %>%
+  left_join(pomp_data %>%
+              dplyr::select(Date, time), by = "time")
+
+pl <- ggplot(data = phi, aes(x = Date, y = rel_beta_change)) +
+  geom_line() +
+  geom_point() +
+  ylab(expression(phi))
+plot(pl)
+```
+
+## Iterated filtering
+
+We start the estimation procedure by using iterated filtering to find the maximum likelihood parameter estimates.
+
+The parameters to be estimated are defined in the master script.
+
+We use the ```pomp::mif2()``` function. Here are the results from MIF iterations started from size different parameter set guesses.
+
+First, we look at the trace plots of those parameters which are estimated. 
+
+### MIF traces
+
+This is generated by the `explore-mif-results` script.
+
+```{r traceplot,  fig.cap=''}
+plot(traceplot)
+```
+
+
+### Parameter and LL tables
+
+We can look at estimated parameters and the LL for each MIF run.
+The table shows parameters as they are being fit. Columns are sorted by LL.
+
+```{r par-table1}
+table1 = data.frame(t(par_table))
+knitr::kable(table1, caption = 'LL and parameters as estimated.')
+```
+
+All parameters are fit on the real line and transformed inside the model. The table below transforms parameters to biologically more reasonable values. 
+It shows all values for parameters, those fit and those not.
+
+```{r par-table2}
+knitr::kable(par_table_natural, caption = 'LL and parameters transformed to meaningful units.')
+```
+
+
+## Simulate/forecast from the MLEs
+
+Next we run the pomp model (simulate it) and explore the simulations. This is done in simulate-pomp-model and explore-simulation-results.
+One can specify which parameter values to use for simulation.
+
+```{r traj-plot,  fig.cap=''}
+knitr::include_graphics(here('output/figures/traj-plot.png'))
+```
+
+
+This plot shows just those variables which are fit.
+
+```{r fit-plot,  fig.cap=''}
+knitr::include_graphics(here('output/figures/fit-plot.png'))
+```
+
+
+## Likelihood slice
+
+Only as proof of concept. This can be done using the explore-mif-results function.
+
+```{r l-slice,  fig.cap=''}
+#knitr::include_graphics(here('output/figures/LL-slice.png'))
+```
+
+

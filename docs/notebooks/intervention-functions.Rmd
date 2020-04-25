@@ -1,0 +1,136 @@
+---
+title: "Intervention functions in the model"
+output: html_notebook
+---
+
+## How does the `rel_beta_change` covariate impact transmission
+
+We are seeing weird dynamics where setting `rel_beta_change = 1` results in different dynamics depending on the value of `log_beta_s`.
+Recall that `log_beta_s` is $\text{log}(\beta/N)$.
+To incorporate the affect of social distancing, we include a metric from unacast, here called $\phi$: $\text{log}(\beta/N)\phi(t)$.
+
+We will explore how $\phi(t)$ impacts transmission rate at different values of $\text{log}(\beta/N)$.
+In everything below, I refer to `beta_phi` or $\beta \times \phi$ as the derived quantity of interest; it is calculated as: $\text{exp}(\beta) \times \phi \times N$, there $N = 10600018$.
+
+```{r relbeta}
+library(tidyverse)
+
+# Define a vector of rel_beta_change
+rel_beta_change <- rev(seq(0, 1, by = 0.01))
+
+# Define vector of log_beta_s (based on prelimnary ranges observed from fits)
+log_beta_s <- seq(-19, -10, by = 0.1)
+
+# Combine both and back-calculate tranmission
+transmission <- expand.grid(rel_beta_change, log_beta_s) %>%
+  as_tibble() %>%
+  rename("rel_beta_change" = Var1,
+         "log_beta_s" = Var2) %>%
+  mutate(beta_s = exp(log_beta_s),
+         beta_phi = beta_s * rel_beta_change * 10600018)
+
+ggplot(transmission, aes(x = log_beta_s, y = rel_beta_change)) +
+  geom_tile(aes(fill = beta_phi)) +
+  scale_fill_viridis_c()
+```
+
+So, because we are multiplying `rel_beta_change` by an exponentiated value, we get a nonlinear response in return (mostly at low `log_beta_s`).
+Let's look at some example values.
+
+```{r tab}
+transmission %>%
+  filter(rel_beta_change %in% c(1, 0.6)) %>%
+  ggplot(aes(x = log_beta_s, y = beta_phi)) +
+  geom_line(aes(linetype = as.factor(rel_beta_change))) +
+  ylab(bquote(beta %*% phi))
+```
+
+In that plot the nonlinearity is obvious.
+This is why we see much different dynamics depending on baseline `log_beta_s`.
+Let's zoom in on what is becoming the expected range, between -18 and -16.
+
+```{r tab2}
+transmission %>%
+  filter(rel_beta_change %in% c(1, 0.6)) %>%
+  filter(log_beta_s < -15.9 & log_beta_s > -18.1) %>%
+  ggplot(aes(x = log_beta_s, y = beta_phi)) +
+  geom_line(aes(linetype = as.factor(rel_beta_change))) +
+  ylab(bquote(beta %*% phi))
+```
+
+
+## Spead up function for detection fraction
+
+We now let detection fraction change smoothly as a function of time.
+The formula is: $f_d = d_{max} \times d_{rate} \times t / (1 + d_{rate} *t)$.
+In code this is: `detect_frac = 1/(1+exp(max_detect_par)) * exp(log_detect_inc_rate) * t / (1 + exp(log_detect_inc_rate) * t)`.
+Let's explore these functions over range of parameter values.
+(Note that the values across the top of the panels are `max_detect_par`, which on the natural scale can range between 0 and 1).
+
+```{r detect1}
+max_detect_par <- seq(-2, 2, length.out = 6)
+log_detect_inc_rate <- seq(-10, 10, by = 1)
+times <- seq(1, 20, by = 1)
+tint <- 10
+detect_grid <- expand.grid(max_detect_par, log_detect_inc_rate, times) %>%
+  as_tibble() %>%
+  rename("max_detect_par" = Var1,
+         "log_detect_inc_rate" = Var2,
+         "times" = Var3) %>%
+  mutate(detect_frac = 1/(1+exp(max_detect_par)) * exp(log_detect_inc_rate) * (times) / (1 + exp(log_detect_inc_rate) * (times)))
+
+ggplot(detect_grid, aes(x = times, y = detect_frac, group = as.factor(log_detect_inc_rate))) +
+  geom_line(aes(color = log_detect_inc_rate)) +
+  facet_wrap(~max_detect_par, scales = "free_y") +
+  scale_color_viridis_c()
+```
+
+## Speed up in diagnosis
+
+The speed up in diagnosis function over time shortens the time spent in the symptomatic stage before diagnosis and, in turn, increase the time spent in the symptomatic stage after diagnosis.
+Here is the C code:
+
+```{r diag, eval = FALSE}
+diag_speedup = (1 + exp(log_max_diag) )* exp(log_diag_inc_rate) * t / (1 + exp(log_diag_inc_rate) * t);
+g_sd = diag_speedup*exp(log_g_sd); // shortened time in symptomatic stage prior to diagnosis
+g_c = exp(log_g_c)/diag_speedup;  // increased time in symptomatic stage post diagnosis
+```
+
+Let's explore these functions over a range of values.
+
+```{r diag-test}
+log_max_diag <- seq(-10, 10, length.out = 6)
+log_diag_inc_rate <- seq(-10, 10, length.out = 6)
+log_g_sd <- seq(-10, 10, length.out = 6)
+log_g_c <- seq(-10, 10, length.out = 6)
+times <- seq(1, 60, by = 1)
+
+diag_grid_sd <- expand.grid(log_max_diag, log_diag_inc_rate, log_g_sd, times) %>%
+  as_tibble() %>%
+  rename("log_max_diag" = Var1,
+         "log_diag_inc_rate" = Var2,
+         "log_g_sd" = Var3,
+         "times" = Var4) %>%
+  mutate(diag_speedup = (1 + exp(log_max_diag) )* exp(log_diag_inc_rate) * times / (1 + exp(log_diag_inc_rate) * times)) %>%
+  mutate(g_sd = diag_speedup*exp(log_g_sd))
+
+ggplot(diag_grid_sd, aes(x = times, y = diag_speedup,
+                         group = as.factor(log_diag_inc_rate))) +
+  geom_line(aes(color = log_diag_inc_rate)) +
+  facet_wrap(~log_max_diag, scales = "free_y") +
+  scale_color_viridis_c() +
+  ggtitle("diag_speedup as a function of time")
+
+ggplot(diag_grid_sd %>%
+         filter(log_g_sd == -2), aes(x = times, y = g_sd,
+                         group = as.factor(log_diag_inc_rate))) +
+  geom_line(aes(color = log_diag_inc_rate)) +
+  facet_wrap(~log_max_diag, scales = "free_y") +
+  scale_color_viridis_c() +
+  ggtitle("g_sd as a function of time (log_g_sd = -2")
+
+diag_grid_c <- expand.grid(log_max_diag, log_diag_inc_rate, log_g_c)
+
+```
+
+

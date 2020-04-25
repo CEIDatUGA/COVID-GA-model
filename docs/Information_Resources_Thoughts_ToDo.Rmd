@@ -1,0 +1,73 @@
+---
+title: "A document for all kind of project related information"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output: html_document
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+```
+
+
+# Overview
+
+This document contains information useful for the project. It has specifications/documentation, as well as other sections with links to resources, thoughts, to-do, etc.
+
+
+# Project Information
+
+## Conventions
+
+Specifying the way things should be done for this project to provide consistency.
+
+### File Names
+* All file names should ideally be lowercase. Underscore as needed. Avoid dashes. No spaces.
+* File endings should be all lowercase. Exceptions: .R and .Rmd files.
+
+### Project Structure
+* All code goes into the `/code` folder and subfolders.
+* External data goes into the `/data` folder.
+* Results produced by us (data/tables/figures) goes into `/output` and subfolders.
+* Any kind of report/documentation/etc goes into `/docs` folder and subfolders.
+* Old material goes into `/cache`.
+* All files should be accessed through the `here` function/package, which uses the .Rproj file as the root (independent of any other structure).
+
+### Functions
+* Each function is in a separate R file. Function and file name are the same. Should all be lowercase. No dashes.
+* Every function takes input and produces outputs, it does not perform 'hidden' operations (e.g. loading or saving of files).
+* All function outputs should by default return a list of objects for further processing.
+
+
+### Scripts
+* Scripts can be used to further process results and generate tables/figures/etc. 
+* Scripts can read and write files.
+* Scripts should be able to run fast, anything that requires long runs should be made a function.
+* Scripts should use underscores in file names to make them easily distinguishable from functions. Remove dashes (could cause problems on Linux type systems).
+
+### Outputs
+* Outputs should have the following naming convention: State_date_label, e.g. Georgia_2020_04_22_miftraces.png
+* As needed, `date` can be replaced with `time` to give a more detailed time stamp and minimize overwriting.
+* Predictions for each state should be saved as a list. 
+  - The main list element should be a data frame containing the trajectories with these columns: Date, Period (Calibration/Prediction), Location (State), Scenario (name of scenario), Variable (e.g. Cases, Deaths, etc.), Type (e.g. lower5, median, upper95, etc.), Value (numeric value) 
+  - A second list element called information should contain text describing the scenarios, the Type, and whatever else might be needed for automated display in a Shiny apps. Details TBD.
+
+
+# Resources
+
+
+## Other forecasting models and their visualizations
+
+* U Texas: https://covid-19.tacc.utexas.edu/projections/
+* Forecasting challenge website: 
+  - https://reichlab.io/covid19-forecast-hub/
+  - https://github.com/reichlab/covid19-forecast-hub
+
+
+
+# To-Dos
+
+* Implement US and all states
+* Implement a graphical interface
+
+
