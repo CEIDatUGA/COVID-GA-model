@@ -32,7 +32,18 @@ setparsvars <- function(est_these_pars, est_these_inivals, tint)
                D_0 = 0
   )
   
-  Ntot <- sum(inivals)  # total population size - needed below
+  inivalsraw <- c(S_0 = 10600000, 
+               E1_0 = 40, #E2_0 = 40, E3_0 = 40, E4_0 = 40, 
+               Ia1_0 = 22, #Ia2_0 = 22, Ia3_0 = 22, Ia4_0 = 22, 
+               Isu1_0 = 90,# Isu2_0 = 90, Isu3_0 = 90, Isu4_0 = 90, 
+               Isd1_0 = 14, #Isd2_0 = 14, Isd3_0 = 14, Isd4_0 = 14, 
+               C1_0 = 2, #C2_0 = 2, C3_0 = 2, C4_0 = 2, 
+               H1_0 = 2, #H2_0 = 2, H3_0 = 2, H4_0 = 2, 
+               R_0 = 0,
+               D_0 = 0
+  )
+  
+  Ntot <- sum(inivalsraw)  # total population size - needed below
 
   
   # Parameters --------------------------------------------------------------

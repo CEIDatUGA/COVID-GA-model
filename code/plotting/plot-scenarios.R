@@ -3,8 +3,21 @@
 # for the website.
 
 library(tidyverse)
+library(here)
 
 # Load the most recent simulation files -----------------------------------
+datasource <- "GAD"
+if(datasource == "COV") {
+  fig_outpath <- here("output/figures/covidtracker-figures/")
+}
+if(datasource == "GAD") {
+  fig_outpath <- here("output/figures/gadph-figures/")
+}
+
+# Can set filename_label manually, if needed
+filename_label <- "Georgia_GAD_2020-04-25-12-54"
+# filename_label <- "Georgia_COV_2020-04-25-12-48"
+filename_mif <- here('output', paste0(filename_label, '_mif.rds'))
 
 simfile <- here('output', paste0(filename_label, '_simulation-scenarios.rds'))
 
@@ -36,7 +49,13 @@ sim_summs <- out_sims %>%
   summarise(lower = ceiling(quantile(Value, 0.1)),
             ptvalue = ceiling(quantile(Value, 0.5)),
             upper = ceiling(quantile(Value, 0.9))) %>%
-  ungroup()
+  ungroup() 
+
+# out_sims %>%
+#   filter(rep_id == "4-1") %>%
+#   filter(SimType == "no_intervention") %>%
+#   mutate(allcases = R + D) %>%
+#   pull(allcases) %>% plot()
 
 
 cumulative_summs <- out_sims %>%
@@ -82,23 +101,13 @@ variable_names_cum <- c(
 )
 
 # Fits to data
-end_date <- as.Date("2020-03-01") + max(obs_sim$time) - 1
+end_date <- as.Date(max(pomp_data$Date))
 dates <- seq.Date(as.Date("2020-03-01"), end_date, "days") 
 dates_df <- data.frame(time = c(1:length(dates)), Date = dates)
 
-fits <- obs_sim %>%
-  left_join(dates_df, by = "time") %>%
-  filter(.id != "data") %>%
-  dplyr::select(Date, cases, hosps, deaths) %>%
-  rename("Acases" = cases,
-         "Bhosps" = hosps,
-         "Cdeaths" = deaths) %>%
-  gather(key = "Variable", value = "Value", -Date) %>%
-  group_by(Date, Variable) %>%
-  summarise(lower = ceiling(quantile(Value, 0.025)),
-            ptvalue = ceiling(quantile(Value, 0.5)),
-            upper = ceiling(quantile(Value, 0.975))) %>%
-  ungroup()
+fits <- sim_summs %>%
+  filter(SimType == "status_quo") %>%
+  filter(Period == "Past")
 
 ggplot(fits, aes(x = Date)) +
   # geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2, color = NA) +

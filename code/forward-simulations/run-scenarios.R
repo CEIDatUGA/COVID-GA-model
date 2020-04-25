@@ -57,7 +57,7 @@ obs_sim <- simulate(pomp_model,
 
 # Run simulations ---------------------------------------------------------
 weeks_ahead <- 6
-num_sims <- 10
+num_sims <- 100
 
 out_sims <- tibble()  # empty storage object
 covar_scens <- tibble()  # empty storage object
@@ -144,4 +144,5 @@ saveRDS(object = out_sims, file = fname)
 # Save the covariates
 fname2 <- here('output', paste0(filename_label, '_simulation-covariates.rds'))
 saveRDS(object = covar_scens, file = fname2)
+
 

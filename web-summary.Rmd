@@ -27,9 +27,10 @@ This model supersedes prior stochastic models for Georgia published on this webs
 ### Data
 
 ```{r read-data}
-filename <- tail(list.files(path = here("data/"), pattern = "us-ct-clean"), 1)
-fullpath <- paste0("data/", filename)
-data <- readRDS(here(fullpath)) %>%
+filenames <- list.files(path = here("output/"), pattern = "Georgia_COV")
+filename <- tail(sort(filenames[grep("*mif.rds", filenames)]), 1)
+fullpath <- paste0("output/", filename)
+data <- readRDS(here(fullpath))$pomp_data %>%
   dplyr::select(-time) %>%
   rename("new_cases" = cases,
          "new_hospitalizations" = hosps,
@@ -45,7 +46,6 @@ datlong <- data %>%
   rename("Acases" = new_cases,
          "Bhosps" = new_hospitalizations,
          "Cdeaths" = new_fatalities) %>%
-  dplyr::select(-Location) %>%
   gather("variable", "value", -Date)
 
 variable_names <- c(
@@ -68,7 +68,8 @@ We measure social distancing using aggregated, anonymized locations recorded by 
 We summarize the effectiveness of social distancing behaviors as the average deviation from baseline, a statistic ranging from 0% (complete cessation of movements) to 100% (no difference from baseline).
 
 ```{r unacast, message=FALSE, warning=FALSE, fig.width=5, fig.height=3}
-covar <- readRDS(here("output/rel-beta-change-covar.RDS"))
+covarfile <- list.files(here("output/"), pattern = )
+covar <- readRDS(here("data/rel-beta-change-covar.rds"))
 start_date <- as.Date("2020-03-01")
 dates <- seq(start_date, start_date + nrow(covar) - 1, by = 1)
 date_df <- data.frame(Date = dates, time = 1:nrow(covar))
@@ -86,7 +87,7 @@ The fit of our model to observed data is shown below.
 
 
 ```{r fits}
-knitr::include_graphics(here("output/figures",'fits-to-data.png'))
+knitr::include_graphics(here("output/figures/covidtracker-figures/",'fits-to-data.png'))
 ```
 
 ## Scenarios
@@ -129,13 +130,13 @@ Note that all three measures of epidemic size are believed to be under-reported,
 #### Natural scale
 
 ```{r cumsums}
-knitr::include_graphics(here("output/figures",'cumulative-forecasts.png'))
+knitr::include_graphics(here("output/figures/covidtracker-figures",'cumulative-forecasts.png'))
 ```
 
 #### Log scale
 
 ```{r cumsumsl}
-knitr::include_graphics(here("output/figures",'cumulative-forecasts-log.png'))
+knitr::include_graphics(here("output/figures/covidtracker-figures",'cumulative-forecasts-log.png'))
 ```
 
 ### {.tabset .tabset-fade .tabset-pills}
@@ -147,13 +148,13 @@ knitr::include_graphics(here("output/figures",'cumulative-forecasts-log.png'))
 #### Natural scale
 
 ```{r allnl}
-knitr::include_graphics(here("output/figures",'all-projs-line-nat.png'))
+knitr::include_graphics(here("output/figures/covidtracker-figures",'all-projs-line-nat.png'))
 ```
 
 #### Log scale
 
 ```{r allll}
-knitr::include_graphics(here("output/figures",'all-projs-line-log.png'))
+knitr::include_graphics(here("output/figures/covidtracker-figures",'all-projs-line-log.png'))
 ```
 
 
@@ -175,13 +176,13 @@ Shaded regions represent the area within which 80% of the model simulations fall
 #### Natural scale
 
 ```{r cases}
-knitr::include_graphics(here("output/figures",'cases-trajs-nat.png'))
+knitr::include_graphics(here("output/figures/covidtracker-figures",'cases-trajs-nat.png'))
 ```
 
 #### Log scale
 
 ```{r casesl}
-knitr::include_graphics(here("output/figures",'cases-trajs-log.png'))
+knitr::include_graphics(here("output/figures/covidtracker-figures",'cases-trajs-log.png'))
 ```
 
 ### {.tabset .tabset-fade .tabset-pills}
@@ -191,13 +192,13 @@ knitr::include_graphics(here("output/figures",'cases-trajs-log.png'))
 #### Natural scale
 
 ```{r hosps}
-knitr::include_graphics(here("output/figures",'hosps-trajs-nat.png'))
+knitr::include_graphics(here("output/figures/covidtracker-figures",'hosps-trajs-nat.png'))
 ```
 
 #### Log scale
 
 ```{r hospsl}
-knitr::include_graphics(here("output/figures",'hosps-trajs-log.png'))
+knitr::include_graphics(here("output/figures/covidtracker-figures",'hosps-trajs-log.png'))
 ```
 
 ### {.tabset .tabset-fade .tabset-pills}
@@ -207,13 +208,13 @@ knitr::include_graphics(here("output/figures",'hosps-trajs-log.png'))
 #### Natural scale
 
 ```{r deaths}
-knitr::include_graphics(here("output/figures",'deaths-trajs-nat.png'))
+knitr::include_graphics(here("output/figures/covidtracker-figures",'deaths-trajs-nat.png'))
 ```
 
 #### Log scale
 
 ```{r deathsl}
-knitr::include_graphics(here("output/figures",'deaths-trajs-log.png'))
+knitr::include_graphics(here("output/figures/covidtracker-figures",'deaths-trajs-log.png'))
 ```
 
 ## Model details

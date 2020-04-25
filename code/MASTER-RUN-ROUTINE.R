@@ -14,7 +14,7 @@
 
 args <- commandArgs(trailingOnly = F)
 myargument <- args[length(args)]
-myargument <- sub("-","",myargument)
+myargument <- as.numeric(sub("-","",myargument))
 
 
 
@@ -88,7 +88,7 @@ source(here("code/data-processing/loadcleanCTdata.R"))
 source(here("code/data-processing/loadcleanGDPHdata.R"))
 
 if (datasource == "COV") {
-  pomp_data <- loadcleanCTdata(use_these_locations = location)
+  pomp_data <- loadcleanCTdata(use_these_locations = location, start_date = "2020-03-01")
 }
 if (datasource == "GAD") {  
   pomp_data <- loadcleanGDPHdata(start_date = "2020-03-01")
@@ -98,7 +98,7 @@ if (datasource == "GAD") {
 
 # Read in the movement data covariate table -------------------------------
 
-covar_table <- readRDS(here("output/rel-beta-change-covar.RDS"))
+covar_table <- readRDS(here("data/rel-beta-change-covar.rds"))
 covar_start <- as.Date("2020-02-01")
 covar_end <- covar_start + nrow(covar_table) - 1
 covar_table <- covar_table %>%
@@ -127,17 +127,17 @@ pomp_model <- makepompmodel(par_var_list = par_var_list,
 parallel_info = list()
 parallel_info$parallel_run <- TRUE
 # parallel_info$num_cores <- parallel::detectCores() - 2  # alter as needed
-parallel_info$num_cores <- 3  # on HPC
+parallel_info$num_cores <- 30  # on HPC
 
 # specify settings for mif2 procedure
 # two rounds of MIF
 # these 2 rounds are currently hard-coded into runmif
 mif_settings = list()
-mif_settings$mif_num_particles  <- c(200,200)
-mif_settings$mif_num_iterations <- c(10,10)
+mif_settings$mif_num_particles  <- c(2000,2000)
+mif_settings$mif_num_iterations <- c(100,100)
 mif_settings$mif_cooling_fracs <- c(0.9, 0.7)
-mif_settings$pf_num_particles <- 200
-mif_settings$pf_reps <- 2
+mif_settings$pf_num_particles <- 2000
+mif_settings$pf_reps <- 10
 
 # source the mif function
 source(here("code/model-fitting/runmif.R"))

@@ -12,7 +12,7 @@ loadcleanCTdata <- function(use_these_locations, start_date = "2020-03-01")
     us_data <- read_csv("https://covidtracking.com/api/states/daily.csv")
     #data for population size for each state/country so we can compute cases per 100K
     #not currently needed, but keep here just in case
-    filename = here('data/us_popsize.RDS')
+    filename = here('data/us_popsize.rds')
     us_popsize <- readRDS(filename)
     us_clean <- us_data %>% dplyr::select(c(date,state,positive,negative,total,hospitalized,death)) %>%
       mutate(date = as.Date(as.character(date),format="%Y%m%d")) %>% 
