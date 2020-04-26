@@ -57,7 +57,7 @@ filename_label <- paste(location,datasource,stamp,sep="_")
 # Parameters
 est_these_pars = c("log_beta_s", 
                    "frac_hosp", "frac_dead", 
-                   "max_detect_par", "log_detect_inc_rate", "log_half_detect",
+                   "max_detect_par",
                    "log_sigma_dw", 
                    "log_theta_cases", "log_theta_hosps", "log_theta_deaths")
 
@@ -196,18 +196,18 @@ source(here("code/forward-simulations/run-scenarios.R"))
 
 # Make the plots for the website ------------------------------------------
 
-if(datasource == "COV") {
-  fig_outpath <- here("output/figures/covidtracker-figures/")
-}
-if(datasource == "GAD") {
-  fig_outpath <- here("output/figures/gadph-figures/")
-}
-
-source(here("code/plotting/plot-scenarios.R"))
-
-# And add the mif trace
-ggsave(filename = paste0(fig_outpath, "/mif-trace.png"), 
-       plot = mif_res$traceplot)
+# if(datasource == "COV") {
+#   fig_outpath <- here("output/figures/covidtracker-figures/")
+# }
+# if(datasource == "GAD") {
+#   fig_outpath <- here("output/figures/gadph-figures/")
+# }
+# 
+# source(here("code/plotting/plot-scenarios.R"))
+# 
+# # And add the mif trace
+# ggsave(filename = paste0(fig_outpath, "/mif-trace.png"), 
+#        plot = mif_res$traceplot)
 
 
 # scenario_res <- runscenarios(mif_res = mif_res, 
