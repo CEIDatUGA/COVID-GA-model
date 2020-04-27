@@ -1,6 +1,6 @@
 /* pomp C snippet file: tmp1 */
-/* Time: 2020-04-25 09:55:30.477 -0600 */
-/* Salt: A9252565A9036E9FA4318F6A */
+/* Time: 2020-04-27 11:38:19.036 -0600 */
+/* Salt: 1ADE6337B0669573D2910E14 */
 
 #include <C:/Users/atredennick/Documents/R/win-library/3.6/pomp/include/pomp.h>
 #include <R_ext/Rdynload.h>
@@ -287,7 +287,7 @@ void __pomp_stepfn (double *__x, const double *__p, const int *__stateindex, con
     //    numeric value (useful for fitting).
     // The overall foi is modulated by the unacast data stream as covariate.
     
-    foi = rel_beta_change * (exp(log_beta_s)*(Isd_tot + Isu_tot + 1/(1+exp(trans_e))*E_tot + 1/(1+exp(trans_a))*Ia_tot + 1/(1+exp(trans_c))*C_tot+ 1/(1+exp(trans_h))*H_tot));
+    foi = rel_beta_change*( pow( ( 1/(1+exp(-5.65)) ), t ) ) * (exp(log_beta_s)*(Isd_tot + Isu_tot + 1/(1+exp(trans_e))*E_tot + 1/(1+exp(trans_a))*Ia_tot + 1/(1+exp(trans_c))*C_tot+ 1/(1+exp(trans_h))*H_tot));
   
   
     // Time-dependent rate of movement through Isd dummy compartments.

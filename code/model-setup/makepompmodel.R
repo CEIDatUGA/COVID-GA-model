@@ -56,8 +56,8 @@ makepompmodel <- function(par_var_list, pomp_data, covar_table)
     //    numeric value (useful for fitting).
     // The overall foi is modulated by the unacast data stream as covariate.
     
+    //foi = rel_beta_change*( pow( ( 1/(1+exp(-5.65)) ), t ) ) * (exp(log_beta_s)*(Isd_tot + Isu_tot + 1/(1+exp(trans_e))*E_tot + 1/(1+exp(trans_a))*Ia_tot + 1/(1+exp(trans_c))*C_tot+ 1/(1+exp(trans_h))*H_tot));
     foi = rel_beta_change * (exp(log_beta_s)*(Isd_tot + Isu_tot + 1/(1+exp(trans_e))*E_tot + 1/(1+exp(trans_a))*Ia_tot + 1/(1+exp(trans_c))*C_tot+ 1/(1+exp(trans_h))*H_tot));
-  
   
     // Time-dependent rate of movement through Isd dummy compartments.
     // Starts at no speedup, then increases with time up to a max.

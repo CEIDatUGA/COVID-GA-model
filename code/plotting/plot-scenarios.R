@@ -16,20 +16,13 @@ if(datasource == "GAD") {
 
 
 # Can set filename_label manually, if needed
-
-# filename_label <- "Georgia_GAD_2020-04-26-16-29"
-filename_label <- "Georgia_COV_2020-04-26-20-20"  # fixed detection function
-#filename_label <- "Georgia_COV_2020-04-26-17-53"  # estimated detection function
-# filename_mif <- here('output', paste0(filename_label, '_mif.rds'))
-filename_mif <- "./back-compatible-results-2020-04-26/mif-results.RDS"
-pomp_model <- readRDS("./back-compatible-results-2020-04-26/pomp-model.RDS")
-
+filename_label <- "Georgia_COV_2020-04-27-12-55"
+filename_mif <- here('output', paste0(filename_label, '_mif.rds'))
 simfile <- here('output', paste0(filename_label, '_simulation-scenarios.rds'))
-
 covarfile <- here('output', paste0(filename_label, '_simulation-covariates.rds'))
-
 out_sims <- readRDS(simfile)
 covar_scens <- readRDS(covarfile)
+pomp_model <- readRDS(here("output/pomp-model.RDS"))
 
 # Also load mif summaries to get data
 # all_mif <- readRDS(filename_mif)
@@ -41,7 +34,7 @@ covar_scens <- readRDS(covarfile)
 #   gather(key = "Variable", value = "Value", -Date) %>%
 #   mutate(SimType = "obs", Period = "Past")
 
-end_date <- as.Date("2020-04-25")
+end_date <- as.Date("2020-04-26")
 dates <- seq.Date(as.Date("2020-03-01"), end_date, "days") 
 dates_df <- data.frame(time = c(1:length(dates)), Date = dates)
 pomp_data <- pomp_model@data %>%
@@ -67,7 +60,7 @@ sim_summs <- out_sims %>%
   gather(key = "Variable", value = "Value", -SimType, -Period, -Date) %>%
   group_by(SimType, Period, Date, Variable) %>%
   summarise(lower = ceiling(quantile(Value, 0.1)),
-            ptvalue = ceiling(quantile(Value, 0.5)),
+            ptvalue = ceiling(mean(Value)),
             upper = ceiling(quantile(Value, 0.9))) %>%
   ungroup() 
 
@@ -89,7 +82,7 @@ cumulative_summs <- out_sims %>%
   mutate(Value = cumsum(Value)) %>%
   group_by(SimType, Variable, Date) %>%
   summarise(min = quantile(Value, 0.1),
-            ptvalue = ceiling(quantile(Value, 0.5)),
+            ptvalue = ceiling(mean(Value)),
             max = quantile(Value, 0.9)) %>%
   ungroup() %>%
   filter(Date == max(Date)) %>%
@@ -202,7 +195,7 @@ cum_summs_traj <- out_sims %>%
   group_by(SimType, Variable, rep_id) %>%
   mutate(Value = cumsum(Value)) %>%
   group_by(SimType, Variable, Date) %>%
-  summarise(ptvalue = ceiling(quantile(Value, 0.5))) %>%
+  summarise(ptvalue = ceiling(mean(Value))) %>%
   ungroup() %>%
   mutate(SimType2 = ifelse(SimType == "linear_decrease_sd", "3Relax social distancing", SimType),
          SimType2 = ifelse(SimType == "no_intervention", "6No intervention", SimType2),
@@ -655,8 +648,8 @@ cumulative_summs %>%
   dplyr::select(-min, -max) %>%
   spread(Variable, ptvalue) -> sq
 
-relax$Acases-sq$Acases
-relax$Cdeaths-sq$Cdeaths
+relax$Acases-sq$Acases-sdist$Acases
+relax$Cdeaths-sq$Cdeaths-sdist$Cdeaths
 
 cumulative_summs %>%
   filter(SimType == "6No intervention") %>%
