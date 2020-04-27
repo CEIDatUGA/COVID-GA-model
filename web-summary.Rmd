@@ -4,8 +4,6 @@ date: "`r format(Sys.time(), '%B %d, %Y')`"
 output:
   html_document:
     df_print: paged
-  word_document: default
-  pdf_document: default
 header-includes: \usepackage{amsmath}
 ---
 
@@ -13,6 +11,8 @@ header-includes: \usepackage{amsmath}
 knitr::opts_chunk$set(echo = FALSE)
 library(here)
 library(tidyverse)
+library(plotly)
+source("code/plotting/plot-scenarios.R")
 ```
 
 # {.tabset .tabset-fade}
@@ -40,55 +40,83 @@ data <- readRDS(here(fullpath))$pomp_data %>%
 
 At the time of this report, Georgia is reporting `r format(sum(data$new_cases, na.rm = TRUE), big.mark=",")` cases, `r format(sum(data$new_hospitalizations, na.rm = TRUE), big.mark=",")` hospitalizations,  and `r format(sum(data$new_fatalities, na.rm = TRUE), big.mark=",")` deaths.
 These data are from <a href="https://covidtracking.com/" target="_blank">covidtracking.com</a>.
+Grey bars represent reported data and the black line represents the fit of our model to observed data.
 
-```{r data-plot, warning=FALSE, message=FALSE, fig.height=3, fig.width=8.5} 
-datlong <- data %>%
-  rename("Acases" = new_cases,
-         "Bhosps" = new_hospitalizations,
-         "Cdeaths" = new_fatalities) %>%
-  gather("variable", "value", -Date)
-
-variable_names <- c(
-  "Acases" = 'New cases',
-  "Bhosps" ='New hospitalizations',
-  "Cdeaths" = 'New deaths'
-)
-
-ggplot(datlong, aes(x = Date, y = value)) +
-  geom_col() +
-  facet_wrap(~variable, ncol = 3, scales = "free_y", 
-             labeller = labeller(variable = variable_names)) +
-  ylab("Number of persons") +
-  scale_y_continuous(labels = scales::comma)+
-  theme_minimal()
+```{r fits, warning=FALSE, message=FALSE, out.height='250px'}
+plot_fits()
 ```
+
+<!-- <iframe width='100%' height='400px' style='border:none; margin: 0; padding: 0;' src='output/figures/covidtracker-figures/fits-to-data.html'></iframe> -->
+
+<!-- ```{r data-plot, warning=FALSE, message=FALSE, fig.height=3, fig.width=8.5}  -->
+<!-- datlong <- data %>% -->
+<!--   rename("Acases" = new_cases, -->
+<!--          "Bhosps" = new_hospitalizations, -->
+<!--          "Cdeaths" = new_fatalities) %>% -->
+<!--   gather("variable", "value", -Date) -->
+
+<!-- variable_names <- c( -->
+<!--   "Acases" = 'New cases', -->
+<!--   "Bhosps" ='New hospitalizations', -->
+<!--   "Cdeaths" = 'New deaths' -->
+<!-- ) -->
+
+<!-- g <- ggplot(datlong, aes(x = Date, y = value)) + -->
+<!--   geom_col() + -->
+<!--   facet_wrap(~variable, ncol = 3, scales = "free_y",  -->
+<!--              labeller = labeller(variable = variable_names)) + -->
+<!--   ylab("Number of persons") + -->
+<!--   scale_y_continuous(labels = scales::comma)+ -->
+<!--   theme_minimal() -->
+<!-- g %>% plotly::ggplotly() -->
+<!-- ``` -->
+
+### Model
 
 To date, the primary intervention has been the adoption of social distancing behaviors and improved hygiene.
 We measure social distancing using aggregated, anonymized locations recorded by location-based mobile phone apps.
 We summarize the effectiveness of social distancing behaviors as the average deviation from baseline, a statistic ranging from 0% (complete cessation of movements) to 100% (no difference from baseline).
 
-```{r unacast, message=FALSE, warning=FALSE, fig.width=5, fig.height=3}
-covarfile <- list.files(here("output/"), pattern = )
-covar <- readRDS(here("data/rel-beta-change-covar.rds"))
-start_date <- as.Date("2020-03-01")
-dates <- seq(start_date, start_date + nrow(covar) - 1, by = 1)
-date_df <- data.frame(Date = dates, time = 1:nrow(covar))
-covar <- covar %>%
-  left_join(date_df, by = "time")
+We explore a range of social distancing scenarios in Georgia going forward from April 25, ranging from increasing social distancing to completely ending social distancing. For each scenario, we use our model to project the likely outcomes for each scenario. We run our model one thousand times for each scenario. The plot below summarizes the social distancing scenarios and the projected cumulative number of cases for each scenario, with a range of possible outcomes for each.
 
-ggplot(covar, aes(x = Date, y = rel_beta_change)) +
-  geom_line() +
-  ylab("Social distancing\n(human movement as % of baseline)") +
-  theme_minimal() +
-  scale_y_continuous(limits=c(0,1), labels = scales::percent)
+<!-- <img src='output/figures/scenarios-legend.png' style='width:700px'/> -->
+![](output/figures/scenarios-legend.png){ width=700px }
+
+```{r summaryfig, warning=FALSE, message=FALSE, out.height = '400px'}
+plot_summaryfig()
 ```
 
-The fit of our model to observed data is shown below.
+<!-- <iframe width='100%' height='600px' style='border:none; margin: 0; padding: 0;' src='output/figures/covidtracker-figures/landing-page-fig.html'></iframe> -->
+
+<!-- ```{r unacast, message=FALSE, warning=FALSE, fig.width=5, fig.height=3} -->
+<!-- covarfile <- list.files(here("output/"), pattern = ) -->
+<!-- covar <- readRDS(here("data/rel-beta-change-covar.rds")) -->
+<!-- start_date <- as.Date("2020-03-01") -->
+<!-- dates <- seq(start_date, start_date + nrow(covar) - 1, by = 1) -->
+<!-- date_df <- data.frame(Date = dates, time = 1:nrow(covar)) -->
+<!-- covar <- covar %>% -->
+<!--   left_join(date_df, by = "time") -->
+
+<!-- g <- ggplot(covar, aes(x = Date, y = rel_beta_change)) + -->
+<!--   geom_line() + -->
+<!--   ylab("Social distancing\n(human movement as % of baseline)") + -->
+<!--   theme_minimal() + -->
+<!--   scale_y_continuous(limits=c(0,1), labels = scales::percent) + -->
+<!--   geom_point(alpha = 0,  -->
+<!--              aes(text=sprintf("Date: %s<br>Movement: %s",  -->
+<!--                               Date,  -->
+<!--                               scales::percent(rel_beta_change, accuracy = 0.01))))  # tooltip -->
+<!-- g %>% plotly::ggplotly( -->
+<!--   tooltip = c("text") -->
+<!-- ) -->
+<!-- ``` -->
 
 
-```{r fits}
-knitr::include_graphics(here("output/figures/covidtracker-figures/",'fits-to-data.png'))
-```
+
+<!-- ```{r fits} -->
+<!-- knitr::include_graphics(here("output/figures/covidtracker-figures/",'fits-to-data.png')) -->
+<!-- ``` -->
+
 
 ## Scenarios
 
@@ -109,15 +137,15 @@ These two counterfactual scenarios explore what might have occurred if different
 
 *Possible futures scenarios*
 
-1. **Increased social distancing.** Social distancing reduces movements from the current level to 30%, which is the reduction observed in New York City that enabled transmission to decline there.
-2. **Status quo.** Social distancing continues at the last observed level of human movement patterns.
-3. **Relax social distancing.** Social distancing returns to a level of human movement equivalent to 80% of baseline.
-4. **Return to normal.** Social distancing returns to a level of human movement equivalent to baseline. 
+1. **Increase social distancing.** Increasing social distancing reduces human movements from the current level to 30% of normal, which is the reduction observed in New York City that enabled transmission to decline there.
+2. **Maintain social distancing (status quo).** Maintaining social distancing at the level last observed on April 26 maintains human movements at 74% of normal.
+3. **Relax social distancing.** Relaxing social distancing increases human movements from the current level to 80% of normal.
+4. **Return to normal.** Ending social distancing increases human movements from the current level to 100% of normal. 
 
 *Effectiveness scenarios (past and future)*
 
-5. **Continuously improving social distancing.** Human movement patterns show that social distancing began to relax around April 10. In this scenario, we explore how the epidemic would have developed if social distancing had continued to decline until it reached the level observed in New York. 
-6. **No intervention.** To assess the effectiveness of the March 14 and March 23 interventions, we simulate forward from March 1 assuming that no social distancing had been enacted.
+5. **What if social distancing had continued to increase?** Human movement patterns show that social distancing began to relax around April 10. In this scenario, we explore how the epidemic would have developed if social distancing had continued to increase (and human movements had continued to decreased) until it reached the level observed in New York. 
+6. **What if social distancing had never begun?** To assess the effectiveness of the March 14 and March 23 interventions, we simulate forward from March 1 assuming that no social distancing had been enacted.
 
 The following plot shows the range (80% of simulations fall in this range) of projected cumulative number of recorded cases, hospitalizations, and deaths six weeks from today for each scenario.
 The white dots indicate the median projection across simulations. 
@@ -273,7 +301,7 @@ Transmissibility of the virus is assumed to be proportional to the level of huma
 Key parameters estimated using maximum likelihood by iterated filtering (MIF)[^3] include baseline transmissibility ($\beta_0$), maximum ascertainment (i.e. maximum fraction of cases detected), fraction of known cases that are hospitalized, fatality rate among hospitalized cases, and observation errors. 
 Auxiliary parameters estimated using MIF include the intensity of the parameter random walk and dispersion parameters for observables.
 
-For more details, see the [public GitHub repository](https://github.com/CEIDatUGA/COVID-stochastic-fitting).
+For more details, see the <a href='https://github.com/CEIDatUGA/COVID-GA-model' target='_blank'>public GitHub repository</a>
 
 <small>**Disclaimer:** The COVID-19 epidemic is changing rapidly, and information that was used in the construction of this model may be incomplete or contain errors.
 Accordingly, these results are preliminary, provisional, and subject to change.
