@@ -203,6 +203,22 @@ Shaded regions represent the area within which 80% of the model simulations fall
 
 #### Natural scale
 
+```{r infections}
+knitr::include_graphics(here("output/figures/covidtracker-figures",'infections-trajs-nat.png'))
+```
+
+#### Log scale
+
+```{r infectionsl}
+knitr::include_graphics(here("output/figures/covidtracker-figures",'infections-trajs-log.png'))
+```
+
+### {.tabset .tabset-fade .tabset-pills}
+
+***
+
+#### Natural scale
+
 ```{r cases}
 knitr::include_graphics(here("output/figures/covidtracker-figures",'cases-trajs-nat.png'))
 ```
