@@ -7,13 +7,16 @@ library(tidyverse)
 library(here)
 source(here("code/forward-simulations/simulate_trajectories.R"))
 
+filename_label <- "Georgia_COV_2020-04-26-20-20"
 
 # Load pomp model and MLEs ------------------------------------------------
 
+filename_mif <- "./back-compatible-results-2020-04-26/mif-results.RDS"
 all_mif <- readRDS(filename_mif)
 pfs <- all_mif$pf_runs
 mifs <- all_mif$mif_runs
-pomp_model <- all_mif$pomp_model
+# pomp_model <- all_mif$pomp_model
+pomp_model <- readRDS("./back-compatible-results-2020-04-26/pomp-model.RDS")
 
 n_ini_cond = length(pfs)
 ll = list()
@@ -49,11 +52,77 @@ all_mles <- pf_logliks %>%
 # Make sure there are some decent MLEs, i.e., not -inf
 stopifnot(nrow(all_mles) > 0)
 
-obs_sim <- simulate(pomp_model, 
+obs_sim <- tibble()
+for(i in 1:nrow(all_mles)) {
+  sim <- simulate(pomp_model,
+                      params = all_mles[i, ],
+                      nsim = 100,
+                      format="data.frame") %>%
+    mutate(mle_id = i)
+  obs_sim <- bind_rows(obs_sim, sim)
+}
+
+obs_sim2 <- simulate(pomp_model,
                     params = all_mles[1, ],
-                    nsim = 1000, 
+                    nsim = 1,
                     format="data.frame",
                     include.data = TRUE)
+obs_sim2 <- obs_sim2 %>% 
+  filter(.id == "data")
+
+obs_sim <- bind_rows(obs_sim, obs_sim2)
+
+# 
+# pomp_data <- obs_sim2 %>%
+#   filter(.id == "data") %>%
+#   dplyr::select(time,.id, cases, hosps, deaths)
+# 
+# p1 <- obs_sim %>%
+#   filter(.id != "data") %>%
+#   dplyr::select(time,.id, cases) %>%
+#   group_by(time) %>%
+#   summarise(lower = ceiling(quantile(cases, 0.1)),
+#             ptvalue = ceiling(quantile(cases, 0.5)),
+#             upper = ceiling(quantile(cases, 0.9))) %>%
+#   ggplot(aes(x = time, y = ptvalue)) +
+#   # geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2, color = NA) +
+#   geom_line() +
+#   geom_point(data = pomp_data %>% mutate(time = 1:n()), aes(x = time, y = cases))
+# 
+# p2 <- obs_sim %>%
+#   filter(.id != "data") %>%
+#   dplyr::select(time,.id, hosps) %>%
+#   group_by(time) %>%
+#   summarise(lower = ceiling(quantile(hosps, 0.1)),
+#             ptvalue = ceiling(quantile(hosps, 0.5)),
+#             upper = ceiling(quantile(hosps, 0.9))) %>%
+#   ggplot(aes(x = time, y = ptvalue)) +
+#   # geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2, color = NA) +
+#   geom_line() +
+#   geom_point(data = pomp_data %>% mutate(time = 1:n()), aes(x = time, y = hosps))
+# 
+# p3 <- obs_sim %>%
+#   filter(.id != "data") %>%
+#   dplyr::select(time,.id, deaths) %>%
+#   group_by(time) %>%
+#   summarise(lower = ceiling(quantile(deaths, 0.1)),
+#             ptvalue = ceiling(quantile(deaths, 0.5)),
+#             upper = ceiling(quantile(deaths, 0.9))) %>%
+#   ggplot(aes(x = time, y = ptvalue)) +
+#   # geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2, color = NA) +
+#   geom_line() +
+#   geom_point(data = pomp_data %>% mutate(time = 1:n()), aes(x = time, y = deaths))
+# 
+# cowplot::plot_grid(p1, p2, p3, ncol = 3)
+
+# obs_sim <- simulate(pomp_model, 
+#                      params = all_mles[3, ],
+#                      nsim = 100,
+#                      format="data.frame",
+#                      include.data = TRUE)
+
+
+
 
 # Run simulations ---------------------------------------------------------
 weeks_ahead <- 6

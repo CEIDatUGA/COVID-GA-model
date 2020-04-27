@@ -14,10 +14,15 @@ if(datasource == "GAD") {
   fig_outpath <- here("output/figures/gadph-figures/")
 }
 
+
 # Can set filename_label manually, if needed
-# filename_label <- "Georgia_GAD_2020-04-25-12-54"
-filename_label <- "Georgia_COV_2020-04-25-12-48"
-filename_mif <- here('output', paste0(filename_label, '_mif.rds'))
+
+# filename_label <- "Georgia_GAD_2020-04-26-16-29"
+filename_label <- "Georgia_COV_2020-04-26-20-20"  # fixed detection function
+#filename_label <- "Georgia_COV_2020-04-26-17-53"  # estimated detection function
+# filename_mif <- here('output', paste0(filename_label, '_mif.rds'))
+filename_mif <- "./back-compatible-results-2020-04-26/mif-results.RDS"
+pomp_model <- readRDS("./back-compatible-results-2020-04-26/pomp-model.RDS")
 
 simfile <- here('output', paste0(filename_label, '_simulation-scenarios.rds'))
 
@@ -27,14 +32,29 @@ out_sims <- readRDS(simfile)
 covar_scens <- readRDS(covarfile)
 
 # Also load mif summaries to get data
-all_mif <- readRDS(filename_mif)
-pomp_data <- all_mif$pomp_data %>%
-  dplyr::select(-time) %>%
+# all_mif <- readRDS(filename_mif)
+# pomp_data <- all_mif$pomp_data %>%
+#   dplyr::select(-time) %>%
+#   rename("Acases" = cases,
+#          "Bhosps" = hosps,
+#          "Cdeaths" = deaths) %>%
+#   gather(key = "Variable", value = "Value", -Date) %>%
+#   mutate(SimType = "obs", Period = "Past")
+
+end_date <- as.Date("2020-04-25")
+dates <- seq.Date(as.Date("2020-03-01"), end_date, "days") 
+dates_df <- data.frame(time = c(1:length(dates)), Date = dates)
+pomp_data <- pomp_model@data %>%
+  t() %>%
+  as.data.frame() %>%
+  dplyr::mutate(time = 1:n()) %>%
+  right_join(dates_df, by = "time") %>%
+  dplyr::select(Date, cases, hosps, deaths) %>%
   rename("Acases" = cases,
-         "Bhosps" = hosps,
-         "Cdeaths" = deaths) %>%
-  gather(key = "Variable", value = "Value", -Date) %>%
-  mutate(SimType = "obs", Period = "Past")
+                  "Bhosps" = hosps,
+                  "Cdeaths" = deaths) %>%
+           gather(key = "Variable", value = "Value", -Date) %>%
+           mutate(SimType = "obs", Period = "Past")
 
 
 # Summarize the simulations -----------------------------------------------
@@ -64,6 +84,7 @@ cumulative_summs <- out_sims %>%
          "Bhosps" = hosps,
          "Cdeaths" = deaths) %>%
   gather(key = "Variable", value = "Value", -SimType, -Date, -rep_id) %>%
+  arrange(SimType, Variable, rep_id, Date) %>%
   group_by(SimType, Variable, rep_id) %>%
   mutate(Value = cumsum(Value)) %>%
   group_by(SimType, Variable, Date) %>%
@@ -581,3 +602,100 @@ ggsave(paste0(fig_outpath, "/deaths-trajs-log.png"),
        units = "in", dpi = 300)
 
 
+
+# Stats for press release -------------------------------------------------
+
+
+pomp_data %>% 
+  arrange(Date) %>%
+  group_by(Variable) %>%
+  mutate(Value = ifelse(is.na(Value), 0, Value)) %>%
+  mutate(cum_sum = cumsum(Value)) %>%
+  ungroup() %>%
+  filter(Period == "APast") %>% 
+  filter(Date == max(Date)) %>%
+  dplyr::select(-Value) %>%
+  spread(Variable, cum_sum) -> sdist
+
+sim_summs %>%
+  filter(SimType == "no_intervention") %>%
+  dplyr::select(-lower, -upper) %>%
+  arrange(Date) %>%
+  group_by(Variable) %>%
+  mutate(cum_sum = cumsum(ptvalue)) %>%
+  ungroup() %>%
+  filter(Period == "Past") %>% 
+  filter(Date == max(Date)) %>%
+  dplyr::select(-ptvalue) %>%
+  spread(Variable, cum_sum) -> noint
+
+ 1 - (sdist$Acases / noint$Acases) 
+noint$Cdeaths - sdist$Cdeaths
+
+
+cumulative_summs %>%
+  filter(SimType == "3Relax social distancing") %>%
+  dplyr::select(-min, -max) %>%
+  spread(Variable, ptvalue) -> relax
+
+cumulative_summs %>%
+  filter(SimType == "2Status quo") %>%
+  dplyr::select(-min, -max) %>%
+  spread(Variable, ptvalue) -> sq
+
+relax$Acases-sq$Acases
+relax$Cdeaths-sq$Cdeaths
+
+cumulative_summs %>%
+  filter(SimType == "6No intervention") %>%
+  dplyr::select(-min, -max) %>%
+  spread(Variable, ptvalue) -> noi
+
+cumulative_summs %>%
+  filter(SimType == "1Increased social distancing") %>%
+  dplyr::select(-min, -max) %>%
+  spread(Variable, ptvalue) -> good
+
+cumulative_summs %>%
+  filter(SimType == "4Return to normal") %>%
+  dplyr::select(-min, -max) %>%
+  spread(Variable, ptvalue) -> normal
+
+noint$Acases - sdist$Acases
+noint$Cdeaths - sdist$Cdeaths
+# noi$Acases-sq$Acases
+# noi$Cdeaths-sq$Cdeaths
+relax$Acases/sq$Acases
+relax$Acases/good$Acases
+relax$Cdeaths/sq$Cdeaths
+relax$Cdeaths/good$Cdeaths
+
+
+cumulative_summs2 <- out_sims %>%
+  dplyr::select(SimType, Date, cases, hosps, deaths, rep_id) %>%
+  rename("Acases" = cases,
+         "Bhosps" = hosps,
+         "Cdeaths" = deaths) %>%
+  gather(key = "Variable", value = "Value", -SimType, -Date, -rep_id) %>%
+  arrange(SimType, Variable, rep_id, Date) %>%
+  group_by(SimType, Variable, rep_id) %>%
+  filter(Date >= "2020-05-26") %>%
+  group_by(SimType, Variable, rep_id) %>%
+  mutate(Value = cumsum(Value)) %>%
+  group_by(SimType, Variable, Date) %>%
+  summarise(min = quantile(Value, 0.1),
+            ptvalue = ceiling(quantile(Value, 0.5)),
+            max = quantile(Value, 0.9)) %>%
+  ungroup() %>%
+  mutate(SimType2 = ifelse(SimType == "linear_decrease_sd", "3Relax social distancing", SimType),
+         SimType2 = ifelse(SimType == "no_intervention", "6No intervention", SimType2),
+         SimType2 = ifelse(SimType == "lowest_sd", "5Continuously improving social distancing", SimType2),
+         SimType2 = ifelse(SimType == "status_quo", "2Status quo", SimType2),
+         SimType2 = ifelse(SimType == "linear_increase_sd", "1Increased social distancing", SimType2),
+         SimType2 = ifelse(SimType == "return_normal", "4Return to normal", SimType2)) %>%
+  mutate(SimType = SimType2) %>%
+  dplyr::select(-SimType2) %>%
+  filter(Date == min(Date) | Date == max(Date))
+
+cumulative_summs2 %>% filter(SimType == "2Status quo")
+cumulative_summs2 %>% filter(SimType == "6No intervention")
