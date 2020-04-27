@@ -39,7 +39,7 @@ data <- readRDS(here(fullpath))$pomp_data %>%
 
 At the time of this report, Georgia is reporting `r format(sum(data$new_cases, na.rm = TRUE), big.mark=",")` cases, `r format(sum(data$new_hospitalizations, na.rm = TRUE), big.mark=",")` hospitalizations,  and `r format(sum(data$new_fatalities, na.rm = TRUE), big.mark=",")` deaths.
 These data are from <a href="https://covidtracking.com/" target="_blank">covidtracking.com</a>.
-Grey bars reporesent reporeted datam and the black line represents the fit of our model to observed data.
+Grey bars reporesent reporeted data and the black line represents the fit of our model to observed data.
 
 <iframe width='100%' height='400px' style='border:none; margin: 0; padding: 0;' src='output/figures/covidtracker-figures/fits-to-data.html'></iframe>
 
