@@ -15,7 +15,7 @@
 args <- commandArgs(trailingOnly = F)
 myargument <- args[length(args)]
 myargument <- as.numeric(sub("-","",myargument))
-
+myargument <- 1
 
 
 # Necessary libraries ------------------------------------------------------
