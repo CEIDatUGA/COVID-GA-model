@@ -133,30 +133,39 @@ fits <- sim_summs %>%
   filter(SimType == "status_quo") %>%
   filter(Period == "Past")
 
-ggplot(fits) +
-  # geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2, color = NA) +
-  geom_line(alpha=1, aes(x = Date, y = ptvalue, group = Variable,
-                text=sprintf("Date: %s<br>Fit: %s", Date, ptvalue)
-                )
-            ) +
-  # geom_point(data = pomp_data, alpha=.5, aes(x = Date, y = Value)) +
-  ## changed points to bars
-  geom_col(data = pomp_data, alpha=.5, aes(x = Date, y = Value,
-                                           text=sprintf("Date: %s<br>Data: %s", Date, Value))) +
-  facet_wrap(~Variable, ncol = 3, scales = "free_y", labeller = labeller(Variable = variable_names)) +
-  ylab("Number of persons") +
-  scale_y_continuous(labels = scales::comma) +
-  theme_minimal() -> pfits
-
-## make interactive and save as Widget
-pfits %>% plotly::ggplotly(tooltip = 'text') %>%
-  htmlwidgets::saveWidget(file = paste0(fig_outpath, "fits-to-data.html"))
-
-## save as image
-ggsave(filename = paste0(fig_outpath, "/fits-to-data.png"), 
-       plot = pfits,
-       width = 8.5, height = 3, 
-       units = "in", dpi = 300)
+## Function makes and save png and html plots, and returns html plot
+plot_fits <- function() {
+  ggplot(fits) +
+    # geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2, color = NA) +
+    geom_line(alpha=1, aes(x = Date, y = ptvalue, group = Variable,
+                           text=sprintf("Date: %s<br>Fit: %s", Date, ptvalue)
+    )
+    ) +
+    # geom_point(data = pomp_data, alpha=.5, aes(x = Date, y = Value)) +
+    ## changed points to bars
+    geom_col(data = pomp_data, 
+             alpha=.5, aes(x = Date, y = Value,
+                           text=sprintf("Date: %s<br>Data: %s", Date, Value))) +
+    facet_wrap(~Variable, ncol = 3, scales = "free_y", 
+               labeller = labeller(Variable = variable_names)) +
+    ylab("Number of persons") +
+    scale_y_continuous(labels = scales::comma) +
+    theme_minimal() -> pfits
+ 
+  ## make interactive
+  plotly_pfits <- pfits %>% plotly::ggplotly(tooltip = 'text')
+  
+  ## save as Widget
+  plotly_pfits %>% htmlwidgets::saveWidget(file = paste0(fig_outpath, "fits-to-data.html"))
+  
+  ## save as image
+  ggsave(filename = paste0(fig_outpath, "/fits-to-data.png"), 
+         plot = pfits,
+         width = 8.5, height = 3, 
+         units = "in", dpi = 300)
+  
+  plotly_pfits
+}
 
 # OVERVIEW FIGURE --------------------------------------------------------------------------------
 
@@ -324,18 +333,19 @@ cp <- ggplot(covar_scensp,
 plotly_cp <- cp %>% plotly::ggplotly() %>% layout(showlegend=FALSE)
 
 ## make plotly dashboard and save as Widget
-p_landfig <- plotly::subplot(plotly_cp, plotly_empty(), plotly_lp, plotly_rp, 
-                             nrows = 2, heights = c(.4,.6), widths = c(.85,.15), 
-                             shareX = FALSE, titleY = TRUE
-                             ) %>% 
-  layout(showlegend=FALSE) 
-p_landfig %>% htmlwidgets::saveWidget(file = paste0(fig_outpath, "landing-page-fig.html"))
 
-## make interactive and save as Widget
-# landfig %>% plotly::ggplotly() %>% 
-  # htmlwidgets::saveWidget(file = paste0(fig_outpath, "landing-page-fig.html"))
-
-
+## Function makes and saves html plot, returns html plot
+plot_summaryfig <- function() {
+  p_landfig <- plotly::subplot(plotly_cp, plotly_empty(), plotly_lp, plotly_rp, 
+                               nrows = 2, heights = c(.4,.6), widths = c(.85,.15), 
+                               shareX = FALSE, titleY = TRUE
+                               ) %>% 
+    layout(showlegend=FALSE) 
+  
+  p_landfig %>% htmlwidgets::saveWidget(file = paste0(fig_outpath, "landing-page-fig.html"))
+  p_landfig
+}
+  
 ### static layout
 plots <- cowplot::align_plots(cp, lp, align = "v", axis = "l")
 bottom_row <- cowplot::plot_grid(plots[[2]], rp, align = "h", rel_widths = c(1, 0.1))
