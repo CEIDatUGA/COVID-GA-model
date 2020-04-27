@@ -128,7 +128,7 @@ These two counterfactual scenarios explore what might have occurred if different
 *Possible futures scenarios*
 
 1. **Increase social distancing.** Increasing social distancing reduces human movements from the current level to 30% of normal, which is the reduction observed in New York City that enabled transmission to decline there.
-2. **Maintain social distancing (status quo).** Maintaining social distancing at the level last observed on DATE maintains human movements at XX% of normal.
+2. **Maintain social distancing (status quo).** Maintaining social distancing at the level last observed on April 26 maintains human movements at 74% of normal.
 3. **Relax social distancing.** Relaxing social distancing increases human movements from the current level to 80% of normal.
 4. **Return to normal.** Ending social distancing increases human movements from the current level to 100% of normal. 
 
