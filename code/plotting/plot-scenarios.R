@@ -167,6 +167,8 @@ plot_fits <- function() {
   plotly_pfits
 }
 
+plot_fits()
+
 # OVERVIEW FIGURE --------------------------------------------------------------------------------
 
 all_summs <- sim_summs %>%
