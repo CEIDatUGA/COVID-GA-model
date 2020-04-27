@@ -40,7 +40,7 @@ data <- readRDS(here(fullpath))$pomp_data %>%
 
 At the time of this report, Georgia is reporting `r format(sum(data$new_cases, na.rm = TRUE), big.mark=",")` cases, `r format(sum(data$new_hospitalizations, na.rm = TRUE), big.mark=",")` hospitalizations,  and `r format(sum(data$new_fatalities, na.rm = TRUE), big.mark=",")` deaths.
 These data are from <a href="https://covidtracking.com/" target="_blank">covidtracking.com</a>.
-Grey bars reporesent reporeted data and the black line represents the fit of our model to observed data.
+Grey bars represent reported data and the black line represents the fit of our model to observed data.
 
 ```{r fits, warning=FALSE, message=FALSE, out.height='250px'}
 plot_fits()
@@ -301,7 +301,7 @@ Transmissibility of the virus is assumed to be proportional to the level of huma
 Key parameters estimated using maximum likelihood by iterated filtering (MIF)[^3] include baseline transmissibility ($\beta_0$), maximum ascertainment (i.e. maximum fraction of cases detected), fraction of known cases that are hospitalized, fatality rate among hospitalized cases, and observation errors. 
 Auxiliary parameters estimated using MIF include the intensity of the parameter random walk and dispersion parameters for observables.
 
-<!-- For more details, see the [public GitHub repository](https://github.com/CEIDatUGA/COVID-GA-model). -->
+For more details, see the <a href='https://github.com/CEIDatUGA/COVID-GA-model' target='_blank'>public GitHub repository</a>
 
 <small>**Disclaimer:** The COVID-19 epidemic is changing rapidly, and information that was used in the construction of this model may be incomplete or contain errors.
 Accordingly, these results are preliminary, provisional, and subject to change.
