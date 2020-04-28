@@ -229,13 +229,13 @@ lp <- ggplot(cum_summs_traj, aes(x = Date, y = Cases)) +
             color = mycols['red'], size = 1, linetype = 1) +
   geom_vline(aes(xintercept = as.numeric(foredate)), color = "grey35", linetype = 2) +
   ylab("Total number of\nconfirmed cases") +
-  scale_y_continuous(labels = scales::comma, limits = c(0, 1000000)) +
+  scale_y_continuous(labels = scales::comma, limits = c(0, 2000000)) +
   theme_minimal()
 
 ### plotly
 plotly_lp <- lp %>% plotly::ggplotly() %>%
   layout(showlegend=FALSE,
-         yaxis = list(range = c(0,1000000)),
+         yaxis = list(range = c(0,2000000)),
          xaxis = list(showline = TRUE)
          )
 
@@ -251,14 +251,14 @@ rp <- ggplot(cumulative_summs %>%
   scale_color_manual(values = mycols.vec) +
   ylab("") +
   xlab("") +
-  scale_y_continuous(labels = scales::comma, limits = c(0, 1000000))+
+  scale_y_continuous(labels = scales::comma, limits = c(0, 2000000))+
   scale_x_discrete(labels = rep("", 6)) +
   theme_void() +
   guides(color = FALSE)
 
 ### plotly
 plotly_rp <- rp %>% plotly::ggplotly(tooltip='text') %>% layout(showlegend=FALSE,
-                                                                yaxis = list(range = c(0,1000000),
+                                                                yaxis = list(range = c(0,2000000),
                                                                              showline = TRUE,
                                                                              side = "right",
                                                                              title = "Final range across\nmultiple simulations",
