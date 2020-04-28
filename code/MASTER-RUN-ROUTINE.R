@@ -15,7 +15,6 @@
 args <- commandArgs(trailingOnly = F)
 myargument <- args[length(args)]
 myargument <- as.numeric(sub("-","",myargument))
-myargument <- 1
 
 
 # Necessary libraries ------------------------------------------------------
@@ -39,10 +38,12 @@ if(myargument == 2) {
 }
 
 # Time stamp for results and output
-tm <- Sys.time() # time stamp with date, hours, minutes
+tm <- .POSIXct(Sys.time(), "US/Eastern")  # time stamp with date, hours, minutes
 stamp <- paste(lubridate::date(tm),
-               lubridate::hour(tm),
-               lubridate::minute(tm),
+               stringr::str_pad(as.character(lubridate::hour(tm)), 
+                                width = 2, side = "left", pad = "0"),
+               stringr::str_pad(as.character(lubridate::minute(tm)), 
+                                width = 2, side = "left", pad = "0"),
                sep='-')
 
 # This will be appended to each saved file 
@@ -58,7 +59,7 @@ filename_label <- paste(location,datasource,stamp,sep="_")
 est_these_pars = c("log_beta_s", 
                    "frac_hosp", "frac_dead", 
                    "max_detect_par", 
-                   "log_sigma_dw", # "log_detect_inc_rate", "log_half_detect",
+                   "log_sigma_dw",
                    "log_theta_cases", "log_theta_hosps", "log_theta_deaths")
 
 # Initial conditions
@@ -106,10 +107,11 @@ covar_table <- covar_table %>%
   dplyr::select(-time) %>%
   right_join(pomp_data %>%
               dplyr::select(Date, cases), by = "Date") %>%
-  tidyr::fill(rel_beta_change) %>%
+  tidyr::fill(rel_beta_change) %>%  # fills in trailing NAs w/ last data point
   dplyr::select(-cases, -Date) %>%
   mutate(time = 1:n())
 
+# Make sure that the covariate and data times match
 stopifnot(nrow(covar_table) == nrow(pomp_data))
 
 
@@ -133,10 +135,10 @@ parallel_info$num_cores <- 30  # on HPC
 # two rounds of MIF
 # these 2 rounds are currently hard-coded into runmif
 mif_settings = list()
-mif_settings$mif_num_particles  <- c(2000,2000)
-mif_settings$mif_num_iterations <- c(100,100)
+mif_settings$mif_num_particles  <- c(2000, 2000)
+mif_settings$mif_num_iterations <- c(150, 150)
 mif_settings$mif_cooling_fracs <- c(0.9, 0.7)
-mif_settings$pf_num_particles <- 2000
+mif_settings$pf_num_particles <- 5000
 mif_settings$pf_reps <- 10
 
 # source the mif function

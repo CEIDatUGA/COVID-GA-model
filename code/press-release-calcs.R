@@ -151,3 +151,81 @@ cumulative_summs %>%
   filter(Variable == "deaths") %>%
   filter(Date == max(Date)) %>%
   pull(ptvalue)
+
+# 4a. Compare cumulative number of cases from today to end of forecast between relaxation
+#     and status quo
+cumulative_summs %>%
+  filter(SimType == "linear_decrease_sd") %>%
+  filter(Variable == "cases") %>%
+  filter(Date == max(Date)) %>%
+  pull() -> total_cases_proj_relax
+
+cumulative_summs %>%
+  filter(SimType == "status_quo") %>%
+  filter(Variable == "cases") %>%
+  filter(Date == max(Date)) %>%
+  pull() -> total_cases_proj_statquo
+
+total_cases_proj_relax - total_cases_proj_statquo - total_cases_data
+
+# 4b. Compare cumulative number of deaths from today to end of forecast between relaxation
+#     and status quo
+cumulative_summs %>%
+  filter(SimType == "linear_decrease_sd") %>%
+  filter(Variable == "deaths") %>%
+  filter(Date == max(Date)) %>%
+  pull() -> total_deaths_proj_relax
+
+cumulative_summs %>%
+  filter(SimType == "status_quo") %>%
+  filter(Variable == "deaths") %>%
+  filter(Date == max(Date)) %>%
+  pull() -> total_deaths_proj_statquo
+
+total_deaths_proj_relax - total_deaths_proj_statquo - total_deaths_data
+
+
+# Total cases, hosps, and deaths from March 1, all scenarios
+# and total from April 26.
+pomp_data %>%
+  group_by(Variable) %>%
+  summarize(ValTot = sum(Value, na.rm = TRUE)) %>%
+  ungroup() -> obs_totals
+
+scenarios <- c("linear_decrease_sd", 
+               "linear_increase_sd",
+               "return_normal",
+               "status_quo")
+cumulative_summs %>%
+  filter(SimType %in% scenarios) %>%
+  filter(Date == max(Date)) %>%
+  left_join(obs_totals, by = "Variable") %>%
+  mutate(`Total From April 26` = ptvalue - ValTot) %>%
+  mutate(`Total From March 1` = ptvalue) %>%
+  dplyr::select(SimType, Variable, `Total From March 1`, `Total From April 26`) %>%
+  mutate(SimType2 = ifelse(SimType == "linear_decrease_sd", "Relax social distancing", SimType),
+         SimType2 = ifelse(SimType == "no_intervention", "No intervention", SimType2),
+         SimType2 = ifelse(SimType == "lowest_sd", "Continuously improving social distancing", SimType2),
+         SimType2 = ifelse(SimType == "status_quo", "Status quo", SimType2),
+         SimType2 = ifelse(SimType == "linear_increase_sd", "Increased social distancing", SimType2),
+         SimType2 = ifelse(SimType == "return_normal", "Return to normal", SimType2)) %>%
+  mutate(SimType = SimType2) %>%
+  dplyr::select(-SimType2) %>%
+  knitr::kable(format = "markdown")
+
+cumulative_summs %>%
+  filter(SimType %in% scenarios) %>%
+  filter(Date == max(Date)) %>%
+  left_join(obs_totals, by = "Variable") %>%
+  mutate(`Total From April 26` = ptvalue - ValTot) %>%
+  mutate(`Total From March 1` = ptvalue) %>%
+  dplyr::select(SimType, Variable, `Total From March 1`, `Total From April 26`) %>%
+  mutate(SimType2 = ifelse(SimType == "linear_decrease_sd", "Relax social distancing", SimType),
+         SimType2 = ifelse(SimType == "no_intervention", "No intervention", SimType2),
+         SimType2 = ifelse(SimType == "lowest_sd", "Continuously improving social distancing", SimType2),
+         SimType2 = ifelse(SimType == "status_quo", "Status quo", SimType2),
+         SimType2 = ifelse(SimType == "linear_increase_sd", "Increased social distancing", SimType2),
+         SimType2 = ifelse(SimType == "return_normal", "Return to normal", SimType2)) %>%
+  mutate(SimType = SimType2) %>%
+  dplyr::select(-SimType2) %>%
+  write_csv("../../Desktop/totals_for_jmd.csv")
