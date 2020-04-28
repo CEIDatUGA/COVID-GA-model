@@ -35,7 +35,7 @@ pomp_model <- readRDS(here("output/pomp-model.RDS"))
 #   mutate(SimType = "obs", Period = "Past")
 
 end_date <- as.Date("2020-04-26")
-dates <- seq.Date(as.Date("2020-03-01"), end_date, "days") 
+dates <- seq.Date(as.Date("2020-03-01"), end_date, "days")
 dates_df <- data.frame(time = c(1:length(dates)), Date = dates)
 pomp_data <- pomp_model@data %>%
   t() %>%
@@ -62,7 +62,7 @@ sim_summs <- out_sims %>%
   summarise(lower = ceiling(quantile(Value, 0.1)),
             ptvalue = ceiling(mean(Value)),
             upper = ceiling(quantile(Value, 0.9))) %>%
-  ungroup() 
+  ungroup()
 
 
 cumulative_summs <- out_sims %>%
@@ -113,7 +113,7 @@ variable_names_cum <- c(
 # Fits to data --------------------------------------------------------------------------------
 
 end_date <- as.Date(max(pomp_data$Date))
-dates <- seq.Date(as.Date("2020-03-01"), end_date, "days") 
+dates <- seq.Date(as.Date("2020-03-01"), end_date, "days")
 dates_df <- data.frame(time = c(1:length(dates)), Date = dates)
 
 fits <- sim_summs %>%
@@ -130,31 +130,31 @@ plot_fits <- function() {
     ) +
     # geom_point(data = pomp_data, alpha=.5, aes(x = Date, y = Value)) +
     ## changed points to bars
-    geom_col(data = pomp_data, 
+    geom_col(data = pomp_data,
              alpha=.5, aes(x = Date, y = Value,
                            text=sprintf("Date: %s<br>Data: %s", Date, Value))) +
-    facet_wrap(~Variable, ncol = 3, scales = "free_y", 
+    facet_wrap(~Variable, ncol = 3, scales = "free_y",
                labeller = labeller(Variable = variable_names)) +
     ylab("Number of persons") +
     scale_y_continuous(labels = scales::comma) +
     theme_minimal() -> pfits
- 
+
   ## make interactive
   plotly_pfits <- pfits %>% plotly::ggplotly(tooltip = 'text')
-  
+
   ## save as Widget
   plotly_pfits %>% htmlwidgets::saveWidget(file = paste0(fig_outpath, "fits-to-data.html"))
-  
+
   ## save as image
-  ggsave(filename = paste0(fig_outpath, "/fits-to-data.png"), 
+  ggsave(filename = paste0(fig_outpath, "/fits-to-data.png"),
          plot = pfits,
-         width = 8.5, height = 3, 
+         width = 8.5, height = 3,
          units = "in", dpi = 300)
-  
+
   plotly_pfits
 }
 
-plot_fits()
+# plot_fits()
 
 # OVERVIEW FIGURE --------------------------------------------------------------------------------
 
@@ -181,7 +181,7 @@ foredate <- all_summs %>%
   filter(Period == "APast") %>%
   filter(Date == max(Date)) %>%
   pull(Date) %>%
-  unique() 
+  unique()
 cum_summs_traj <- out_sims %>%
   dplyr::select(SimType, Date, cases, rep_id) %>%
   rename("Acases" = cases) %>%
@@ -198,7 +198,7 @@ cum_summs_traj <- out_sims %>%
          SimType2 = ifelse(SimType == "linear_increase_sd", "1Increased social distancing", SimType2),
          SimType2 = ifelse(SimType == "return_normal", "4Return to normal", SimType2)) %>%
   mutate(SimType = SimType2) %>%
-  dplyr::select(-SimType2) %>% 
+  dplyr::select(-SimType2) %>%
   rename(Cases = ptvalue)
 
 ## line subplot
@@ -210,7 +210,7 @@ cum_summs_traj <- out_sims %>%
 #   ylab("Total number of\nconfirmed cases") +
 #   scale_y_continuous(labels = scales::comma, limits = c(0, 250000))+
 #   theme_minimal() +
-#   guides(color = FALSE) 
+#   guides(color = FALSE)
 
 ## alt line subplot
 # geom_line(data = df[3:4,], aes(x = x, y = y), color = 'blue', size = 3)
@@ -227,14 +227,14 @@ lp <- ggplot(cum_summs_traj, aes(x = Date, y = Cases)) +
             color = mycols['pink'], size = 1, linetype = 1) +
   geom_line(data = filter(cum_summs_traj, SimType == '4Return to normal'),
             color = mycols['red'], size = 1, linetype = 1) +
-  geom_vline(aes(xintercept = as.numeric(foredate)), color = "grey35", linetype = 2) + 
+  geom_vline(aes(xintercept = as.numeric(foredate)), color = "grey35", linetype = 2) +
   ylab("Total number of\nconfirmed cases") +
   scale_y_continuous(labels = scales::comma, limits = c(0, 1000000)) +
-  theme_minimal() 
+  theme_minimal()
 
 ### plotly
-plotly_lp <- lp %>% plotly::ggplotly() %>% 
-  layout(showlegend=FALSE, 
+plotly_lp <- lp %>% plotly::ggplotly() %>%
+  layout(showlegend=FALSE,
          yaxis = list(range = c(0,1000000)),
          xaxis = list(showline = TRUE)
          )
@@ -243,9 +243,9 @@ plotly_lp <- lp %>% plotly::ggplotly() %>%
 mycols.vec <- mycols
 names(mycols.vec) <- NULL
 rp <- ggplot(cumulative_summs %>%
-               filter(Variable == "Acases"), 
+               filter(Variable == "Acases"),
              aes(x = SimType, color = SimType,
-                 text = sprintf("%s<br>Max: %s<br>Min: %s<br>Median: %s", SimType, max, min, ptvalue))) +
+                 text = sprintf("%s<br>Max: %s<br>Min: %s<br>Mean: %s", SimType, max, min, ptvalue))) +
   geom_segment(aes(xend = SimType, y = min, yend = max), size = 3) +
   geom_point(aes(y=ptvalue), color = "white", size = 1) +
   scale_color_manual(values = mycols.vec) +
@@ -257,11 +257,14 @@ rp <- ggplot(cumulative_summs %>%
   guides(color = FALSE)
 
 ### plotly
-plotly_rp <- rp %>% plotly::ggplotly(tooltip='text') %>% layout(showlegend=FALSE, 
-                                                  yaxis = list(range = c(0,1000000),
-                                                               showline = FALSE),
-                                                  xaxis = list(showgrid = FALSE,
-                                                               showline = TRUE))
+plotly_rp <- rp %>% plotly::ggplotly(tooltip='text') %>% layout(showlegend=FALSE,
+                                                                yaxis = list(range = c(0,1000000),
+                                                                             showline = TRUE,
+                                                                             side = "right",
+                                                                             title = "Final range across\nmultiple simulations",
+                                                                             titlefont = list(size = 12)),
+                                                                xaxis = list(showgrid = FALSE,
+                                                                             showline = TRUE))
 
 dates_df <- cum_summs_traj %>%
   dplyr::select(Date) %>%
@@ -285,16 +288,16 @@ covar_scensp <- covar_scens %>%
 #   ylab("Human movement\n(% of normal)") +
 #   xlab("")+
 #   scale_y_continuous(limits = c(0,1), labels = scales::percent) +
-#   theme_minimal() 
+#   theme_minimal()
 # +
 #   theme(legend.position = "top") +
-#   guides(color = guide_legend(nrow=3)) 
+#   guides(color = guide_legend(nrow=3))
 
 ## alt conditions subplot
 
 covar_scensp <- covar_scensp %>% rename(Movement = rel_beta_change)
 
-cp <- ggplot(covar_scensp, 
+cp <- ggplot(covar_scensp,
              aes(x = Date, y = Movement, text = )) +
   geom_line(data = filter(covar_scensp, SimType == '5Continuously improving social distancing'),
             color = mycols['blue'], size = 1, linetype = 2) +
@@ -308,8 +311,8 @@ cp <- ggplot(covar_scensp,
             color = mycols['pink'], size = 1, linetype = 1) +
   geom_line(data = filter(covar_scensp, SimType == '4Return to normal'),
             color = mycols['red'], size = 1, linetype = 1) +
-  geom_vline(aes(xintercept = as.numeric(foredate)), color = "grey35", linetype = 2) + 
-  xlab("") + 
+  geom_vline(aes(xintercept = as.numeric(foredate)), color = "grey35", linetype = 2) +
+  xlab("") +
   ylab("Human movement\n(% of normal)") +
   scale_y_continuous(limits = c(0,1), labels = scales::percent) +
   theme_minimal() +
@@ -325,24 +328,24 @@ plotly_cp <- cp %>% plotly::ggplotly() %>% layout(showlegend=FALSE)
 
 ## Function makes and saves html plot, returns html plot
 plot_summaryfig <- function() {
-  p_landfig <- plotly::subplot(plotly_cp, plotly_empty(), plotly_lp, plotly_rp, 
-                               nrows = 2, heights = c(.4,.6), widths = c(.85,.15), 
+  p_landfig <- plotly::subplot(plotly_cp, plotly_empty(), plotly_lp, plotly_rp,
+                               nrows = 2, heights = c(.4,.6), widths = c(.85,.15),
                                shareX = FALSE, titleY = TRUE
-                               ) %>% 
-    layout(showlegend=FALSE) 
-  
+                               ) %>%
+    layout(showlegend=FALSE)
+
   p_landfig %>% htmlwidgets::saveWidget(file = paste0(fig_outpath, "landing-page-fig.html"))
   p_landfig
 }
-  
+
 ### static layout
 plots <- cowplot::align_plots(cp, lp, align = "v", axis = "l")
 bottom_row <- cowplot::plot_grid(plots[[2]], rp, align = "h", rel_widths = c(1, 0.1))
 top_row <- cowplot::plot_grid(plots[[1]], NULL, rel_widths = c(1,0.1))
 landfig <- cowplot::plot_grid(top_row, bottom_row, ncol = 1)
-ggsave(filename = paste0(fig_outpath, "/landing-page-fig.png"), 
+ggsave(filename = paste0(fig_outpath, "/landing-page-fig.png"),
        plot = landfig,
-       width = 8, height = 6, 
+       width = 8, height = 6,
        units = "in", dpi = 300)
 
 
@@ -365,9 +368,9 @@ ggplot(cumulative_summs, aes(x = SimType, color = SimType)) +
   guides(color = FALSE) +
   coord_flip() +
   ggtitle(title, subtitle = "scenarios are described above") -> cumrangenat
-ggsave(filename = paste0(fig_outpath, "/cumulative-forecasts.png"), 
+ggsave(filename = paste0(fig_outpath, "/cumulative-forecasts.png"),
        plot = cumrangenat,
-       width = 8.5, height = 4, 
+       width = 8.5, height = 4,
        units = "in", dpi = 300)
 
 ggplot(cumulative_summs, aes(x = SimType, color = SimType)) +
@@ -379,7 +382,7 @@ ggplot(cumulative_summs, aes(x = SimType, color = SimType)) +
   facet_wrap(~Variable, ncol = 3, scales = "free_x", labeller = labeller(Variable = variable_names_cum)) +
   ylab("Number of persons") +
   xlab("") +
-  scale_y_continuous(labels = scales::comma, trans = "log", 
+  scale_y_continuous(labels = scales::comma, trans = "log",
                      limits = c(1000,10000000), breaks = c(1000,10000,100000,1000000))+
   scale_x_discrete(labels = scen_labs) +
   theme_minimal() +
@@ -389,7 +392,7 @@ ggplot(cumulative_summs, aes(x = SimType, color = SimType)) +
   ggtitle(title, subtitle = "scenarios are described above") -> cumrangelog
 ggsave(filename = paste0(fig_outpath, "/cumulative-forecasts-log.png"),
        plot = cumrangelog,
-       width = 8.5, height = 4, 
+       width = 8.5, height = 4,
        units = "in", dpi = 300)
 
 # labs <- scen_labs
@@ -398,7 +401,7 @@ ggsave(filename = paste0(fig_outpath, "/cumulative-forecasts-log.png"),
 ggplot(all_summs, aes(x = Date, color = SimType)) +
   geom_line(aes(y = ptvalue)) +
   geom_vline(aes(xintercept = Sys.Date()), color = "grey35", linetype = 2) +
-  facet_wrap(~Variable, ncol = 3, scales = "free_y", 
+  facet_wrap(~Variable, ncol = 3, scales = "free_y",
              labeller = labeller(Variable = variable_names)) +
   scale_color_manual(values = mycols.vec, name = "", labels = scen_labs) +
   theme_minimal() +
@@ -406,27 +409,27 @@ ggplot(all_summs, aes(x = Date, color = SimType)) +
   scale_y_continuous(labels = scales::comma) +
   theme_minimal() +
   theme(legend.position = "top") -> allscensnat
-ggsave(paste0(fig_outpath, "/all-projs-line-nat.png"), 
+ggsave(paste0(fig_outpath, "/all-projs-line-nat.png"),
        plot = allscensnat,
-       width = 8.5, height = 4, 
+       width = 8.5, height = 4,
        units = "in", dpi = 300)
 
 # All scenarios - line, log
 ggplot(all_summs, aes(x = Date,  color = SimType)) +
   geom_line(aes(y = ptvalue)) +
   geom_vline(aes(xintercept = Sys.Date()), color = "grey35", linetype = 2) +
-  facet_wrap(~Variable, ncol = 3, scales = "free_y", 
+  facet_wrap(~Variable, ncol = 3, scales = "free_y",
              labeller = labeller(Variable = variable_names)) +
   scale_color_manual(values = mycols.vec, name = "", labels = scen_labs) +
   theme_minimal() +
   ylab("Number of persons") +
-  scale_y_continuous(labels = scales::comma, trans = "log", 
+  scale_y_continuous(labels = scales::comma, trans = "log",
                      limits = c(1,100000), breaks = c(10,100,1000,10000,100000))+
   theme_minimal() +
   theme(legend.position = "top") -> allscenslog
-ggsave(paste0(fig_outpath, "/all-projs-line-log.png"), 
+ggsave(paste0(fig_outpath, "/all-projs-line-log.png"),
        plot = allscenslog,
-       width = 8.5, height = 4, 
+       width = 8.5, height = 4,
        units = "in", dpi = 300)
 
 
@@ -472,9 +475,9 @@ ggplot(infection_summaries, aes(x = Date, color = Period, fill = Period)) +
   theme(legend.position = "top") +
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
   ggtitle("Total number of infections") -> pinfectionsnat
-ggsave(paste0(fig_outpath, "/infections-trajs-nat.png"), 
+ggsave(paste0(fig_outpath, "/infections-trajs-nat.png"),
        plot = pinfectionsnat,
-       width = 8.5, height = 3, 
+       width = 8.5, height = 3,
        units = "in", dpi = 300)
 
 # Cases
@@ -501,9 +504,9 @@ ggplot(all_summs %>%
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
   ggtitle("New daily cases") +
   coord_cartesian(ylim = c(0, 30000)) -> pcasesnat
-ggsave(paste0(fig_outpath, "/cases-trajs-nat.png"), 
+ggsave(paste0(fig_outpath, "/cases-trajs-nat.png"),
        plot = pcasesnat,
-       width = 8.5, height = 3, 
+       width = 8.5, height = 3,
        units = "in", dpi = 300)
 
 # Hosps
@@ -527,9 +530,9 @@ ggplot(all_summs %>%
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
   ggtitle("New daily hospitalizations") +
   coord_cartesian(ylim = c(0, 10000)) -> phospsnat
-ggsave(paste0(fig_outpath, "/hosps-trajs-nat.png"), 
+ggsave(paste0(fig_outpath, "/hosps-trajs-nat.png"),
        plot = phospsnat,
-       width = 8.5, height = 3, 
+       width = 8.5, height = 3,
        units = "in", dpi = 300)
 
 # Deaths
@@ -553,9 +556,9 @@ ggplot(all_summs %>%
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
   ggtitle("New daily deaths") +
   coord_cartesian(ylim = c(0, 6000)) -> pdeathsnat
-ggsave(paste0(fig_outpath, "/deaths-trajs-nat.png"), 
+ggsave(paste0(fig_outpath, "/deaths-trajs-nat.png"),
        plot = pdeathsnat,
-       width = 8.5, height = 3, 
+       width = 8.5, height = 3,
        units = "in", dpi = 300)
 
 
@@ -568,15 +571,15 @@ ggplot(infection_summaries, aes(x = Date, color = Period, fill = Period)) +
   scale_fill_brewer(type = "qual", name = NULL, labels = collabs) +
   theme_minimal() +
   ylab("Number of persons") +
-  scale_y_continuous(labels = scales::comma, trans = "log", 
+  scale_y_continuous(labels = scales::comma, trans = "log",
                      limits = c(100,10000000), breaks = c(100,1000,10000,100000,1000000,10000000)) +
   theme_minimal() +
   theme(legend.position = "top") +
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
   ggtitle("Total number of infections") -> pinfectionslog
-ggsave(paste0(fig_outpath, "/infections-trajs-log.png"), 
+ggsave(paste0(fig_outpath, "/infections-trajs-log.png"),
        plot = pinfectionslog,
-       width = 8.5, height = 3, 
+       width = 8.5, height = 3,
        units = "in", dpi = 300)
 
 # Cases
@@ -594,15 +597,15 @@ ggplot(all_summs %>%
   scale_fill_brewer(type = "qual", name = NULL, labels = collabs) +
   theme_minimal() +
   ylab("Number of persons") +
-  scale_y_continuous(labels = scales::comma, trans = "log", 
+  scale_y_continuous(labels = scales::comma, trans = "log",
                      limits = c(1,200000), breaks = c(10,100,1000,10000,100000)) +
   theme_minimal() +
   theme(legend.position = "top") +
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
   ggtitle("New daily cases") -> pcaseslog
-ggsave(paste0(fig_outpath, "/cases-trajs-log.png"), 
+ggsave(paste0(fig_outpath, "/cases-trajs-log.png"),
        plot = pcaseslog,
-       width = 8.5, height = 3, 
+       width = 8.5, height = 3,
        units = "in", dpi = 300)
 
 # Hosps
@@ -620,15 +623,15 @@ ggplot(all_summs %>%
   scale_fill_brewer(type = "qual", name = NULL, labels = collabs) +
   theme_minimal() +
   ylab("Number of persons") +
-  scale_y_continuous(labels = scales::comma, trans = "log", 
+  scale_y_continuous(labels = scales::comma, trans = "log",
                      limits = c(1,100000), breaks = c(10,100,1000,10000,100000)) +
   theme_minimal() +
   theme(legend.position = "top") +
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
   ggtitle("New daily hospitalizations") -> phospslog
-ggsave(paste0(fig_outpath, "/hosps-trajs-log.png"), 
+ggsave(paste0(fig_outpath, "/hosps-trajs-log.png"),
        plot = phospslog,
-       width = 8.5, height = 3, 
+       width = 8.5, height = 3,
        units = "in", dpi = 300)
 
 # Deaths
@@ -646,15 +649,15 @@ ggplot(all_summs %>%
   scale_fill_brewer(type = "qual", name = NULL, labels = collabs) +
   theme_minimal() +
   ylab("Number of persons") +
-  scale_y_continuous(labels = scales::comma, trans = "log", 
+  scale_y_continuous(labels = scales::comma, trans = "log",
                      limits = c(1,20000), breaks = c(10,100,1000,10000,100000)) +
   theme_minimal() +
   theme(legend.position = "top") +
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
   ggtitle("New daily deaths") -> pdeathslog
-ggsave(paste0(fig_outpath, "/deaths-trajs-log.png"), 
+ggsave(paste0(fig_outpath, "/deaths-trajs-log.png"),
        plot = pdeathslog,
-       width = 8.5, height = 3, 
+       width = 8.5, height = 3,
        units = "in", dpi = 300)
 
 
@@ -662,13 +665,13 @@ ggsave(paste0(fig_outpath, "/deaths-trajs-log.png"),
 # Stats for press release -------------------------------------------------
 
 
-pomp_data %>% 
+pomp_data %>%
   arrange(Date) %>%
   group_by(Variable) %>%
   mutate(Value = ifelse(is.na(Value), 0, Value)) %>%
   mutate(cum_sum = cumsum(Value)) %>%
   ungroup() %>%
-  filter(Period == "APast") %>% 
+  filter(Period == "APast") %>%
   filter(Date == max(Date)) %>%
   dplyr::select(-Value) %>%
   spread(Variable, cum_sum) -> sdist
@@ -680,12 +683,12 @@ sim_summs %>%
   group_by(Variable) %>%
   mutate(cum_sum = cumsum(ptvalue)) %>%
   ungroup() %>%
-  filter(Period == "Past") %>% 
+  filter(Period == "Past") %>%
   filter(Date == max(Date)) %>%
   dplyr::select(-ptvalue) %>%
   spread(Variable, cum_sum) -> noint
 
- 1 - (sdist$Acases / noint$Acases) 
+ 1 - (sdist$Acases / noint$Acases)
 noint$Cdeaths - sdist$Cdeaths
 
 
