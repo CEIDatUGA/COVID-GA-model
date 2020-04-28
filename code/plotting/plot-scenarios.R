@@ -137,10 +137,14 @@ plot_fits <- function() {
                labeller = labeller(Variable = variable_names)) +
     ylab("Number of persons") +
     scale_y_continuous(labels = scales::comma) +
-    theme_minimal() -> pfits
+    theme_minimal() + 
+    theme(axis.text.x = element_text(angle = -45)) +
+    xlab("") -> pfits
 
   ## make interactive
-  plotly_pfits <- pfits %>% plotly::ggplotly(tooltip = 'text')
+  plotly_pfits <- pfits %>% plotly::ggplotly(tooltip = 'text') 
+  # %>% 
+  #   layout(xaxis=list(tickangle = 45))
 
   ## save as Widget
   plotly_pfits %>% htmlwidgets::saveWidget(file = paste0(fig_outpath, "fits-to-data.html"))
@@ -257,14 +261,15 @@ rp <- ggplot(cumulative_summs %>%
   guides(color = FALSE)
 
 ### plotly
-plotly_rp <- rp %>% plotly::ggplotly(tooltip='text') %>% layout(showlegend=FALSE,
-                                                                yaxis = list(range = c(0,2000000),
-                                                                             showline = TRUE,
-                                                                             side = "right",
-                                                                             title = "Final range across\nmultiple simulations",
-                                                                             titlefont = list(size = 12)),
-                                                                xaxis = list(showgrid = FALSE,
-                                                                             showline = TRUE))
+plotly_rp <- rp %>% plotly::ggplotly(tooltip='text') %>% 
+  layout(showlegend=FALSE,
+         yaxis = list(range = c(0,2000000),
+                      showline = TRUE,
+                      side = "right",
+                      title = "Final range across\nmultiple simulations",
+                      titlefont = list(size = 12)),
+         xaxis = list(showgrid = FALSE,
+                      showline = TRUE))
 
 dates_df <- cum_summs_traj %>%
   dplyr::select(Date) %>%
