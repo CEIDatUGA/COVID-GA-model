@@ -240,7 +240,10 @@ lp <- ggplot(cum_summs_traj, aes(x = Date, y = Cases)) +
 plotly_lp <- lp %>% plotly::ggplotly() %>%
   layout(showlegend=FALSE,
          yaxis = list(range = c(0,2000000)),
-         xaxis = list(showline = TRUE)
+         xaxis = list(showline = TRUE),
+         annotations= list(yref = 'y', xref = "x", y = 750000, x = as.numeric(foredate),
+                           text = format(foredate, format="%b %d"),
+                           showarrow = FALSE, textangle=-90, xanchor = 'right')
          )
 
 ## range subplot
@@ -317,6 +320,7 @@ cp <- ggplot(covar_scensp,
   geom_line(data = filter(covar_scensp, SimType == '4Return to normal'),
             color = mycols['red'], size = 1, linetype = 1) +
   geom_vline(aes(xintercept = as.numeric(foredate)), color = "grey35", linetype = 2) +
+  # geom_text(aes(x=as.numeric(foredate), label=foredate, y=750000), angle=90, text=element_text(size=11))
   xlab("") +
   ylab("Human movement\n(% of normal)") +
   scale_y_continuous(limits = c(0,1), labels = scales::percent) +
@@ -327,7 +331,11 @@ cp <- ggplot(covar_scensp,
 
 
 ### plotly
-plotly_cp <- cp %>% plotly::ggplotly() %>% layout(showlegend=FALSE)
+plotly_cp <- cp %>% plotly::ggplotly() %>% 
+  layout(showlegend=FALSE,
+         annotations= list(yref = 'y', xref = "x", y = .15, x = as.numeric(foredate),
+                           text = format(foredate, format="%b %d"),
+                           showarrow = FALSE, textangle=-90, xanchor = 'right'))
 
 ## make plotly dashboard and save as Widget
 
