@@ -9,6 +9,7 @@ library(here)
 datasource <- "COV"
 if(datasource == "COV") {
   fig_outpath <- here("output/figures/covidtracker-figures/")
+  most_recent_files <- tail(list.files(path = here("output"), "Georgia_COV"), 3)
 }
 if(datasource == "GAD") {
   fig_outpath <- here("output/figures/gadph-figures/")
@@ -16,38 +17,27 @@ if(datasource == "GAD") {
 
 
 # Can set filename_label manually, if needed
-filename_label <- "Georgia_COV_2020-04-27-12-55"
-filename_mif <- here('output', paste0(filename_label, '_mif.rds'))
-simfile <- here('output', paste0(filename_label, '_simulation-scenarios.rds'))
-covarfile <- here('output', paste0(filename_label, '_simulation-covariates.rds'))
+
+filename_mif <- most_recent_files[grep(pattern = "mif", most_recent_files)]
+filename_sims <- most_recent_files[grep(pattern = "simulation-scenarios", most_recent_files)]
+filename_covs <- most_recent_files[grep(pattern = "simulation-covariates", most_recent_files)]
+
+
+simfile <- here('output', filename_sims)
+covarfile <- here('output', filename_covs)
+miffile <- here("output", filename_mif)
 out_sims <- readRDS(simfile)
 covar_scens <- readRDS(covarfile)
-pomp_model <- readRDS(here("output/pomp-model.RDS"))
-
-# Also load mif summaries to get data
-# all_mif <- readRDS(filename_mif)
-# pomp_data <- all_mif$pomp_data %>%
-#   dplyr::select(-time) %>%
-#   rename("Acases" = cases,
-#          "Bhosps" = hosps,
-#          "Cdeaths" = deaths) %>%
-#   gather(key = "Variable", value = "Value", -Date) %>%
-#   mutate(SimType = "obs", Period = "Past")
-
-end_date <- as.Date("2020-04-26")
-dates <- seq.Date(as.Date("2020-03-01"), end_date, "days")
-dates_df <- data.frame(time = c(1:length(dates)), Date = dates)
-pomp_data <- pomp_model@data %>%
-  t() %>%
-  as.data.frame() %>%
-  dplyr::mutate(time = 1:n()) %>%
-  right_join(dates_df, by = "time") %>%
-  dplyr::select(Date, cases, hosps, deaths) %>%
+all_mif <- readRDS(miffile)
+pomp_model <- all_mif$pomp_model
+pomp_data <- all_mif$pomp_data %>%
+  dplyr::select(-time) %>%
   rename("Acases" = cases,
-                  "Bhosps" = hosps,
-                  "Cdeaths" = deaths) %>%
-           gather(key = "Variable", value = "Value", -Date) %>%
-           mutate(SimType = "obs", Period = "Past")
+         "Bhosps" = hosps,
+         "Cdeaths" = deaths) %>%
+  gather(key = "Variable", value = "Value", -Date) %>%
+  mutate(SimType = "obs", Period = "Past")
+
 
 
 # Summarize the simulations -----------------------------------------------
@@ -119,6 +109,37 @@ dates_df <- data.frame(time = c(1:length(dates)), Date = dates)
 fits <- sim_summs %>%
   filter(SimType == "status_quo") %>%
   filter(Period == "Past")
+
+# Diagnostic plot
+fitreps <- out_sims %>%
+  filter(SimType == "status_quo") %>%
+  filter(Period == "Past") %>%
+  dplyr::select(mle_id, SimType, Date, cases, hosps, deaths) %>%
+  rename("Acases" = cases,
+         "Bhosps" = hosps,
+         "Cdeaths" = deaths) %>%
+  gather(key = "Variable", value = "Value",-mle_id, -SimType, -Date) %>%
+  group_by(Date, Variable, mle_id) %>%
+  summarise(Value = ceiling(mean(Value))) %>%
+  ungroup()
+
+meanline <- fitreps %>%
+  group_by(Date, Variable) %>%
+  summarise(Value = ceiling(mean(Value))) %>%
+  ungroup()
+
+medline <- fitreps %>%
+  group_by(Date, Variable) %>%
+  summarise(Value = ceiling(median(Value))) %>%
+  ungroup()
+
+ggplot() +
+  geom_line(data = fitreps, aes(x = Date, y = Value, group = mle_id), 
+            alpha = 0.2) +
+  geom_line(data = meanline, aes(x = Date, y = Value), color = "blue") +
+  geom_line(data = medline, aes(x = Date, y = Value), color = "red") +
+  geom_point(data = pomp_data, aes(x = Date, y = Value), color = "black") +
+  facet_wrap(~Variable, scales = "free_y")
 
 ## Function makes and save png and html plots, and returns html plot
 plot_fits <- function() {
