@@ -47,7 +47,7 @@ all_mles <- pf_logliks %>%
 
 # Make sure there are some decent MLEs, i.e., not -inf
 stopifnot(nrow(all_mles) > 0)
-# 
+
 obs_sim <- tibble()
 for(i in 1:nrow(all_mles)) {
   sim <- simulate(pomp_model,

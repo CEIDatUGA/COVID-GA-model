@@ -99,17 +99,19 @@ if (datasource == "GAD") {
 
 # Read in the movement data covariate table -------------------------------
 
-covar_table <- readRDS(here("data/rel-beta-change-covar.rds"))
-covar_start <- as.Date("2020-02-01")
-covar_end <- covar_start + nrow(covar_table) - 1
+covar_file <- tail(
+  list.files(path = here("data/"), pattern = "rel-beta-change"),
+  1)
+covar_table <- readRDS(here(paste0("data/", covar_file)))
 covar_table <- covar_table %>%
-  mutate(Date = seq(covar_start, covar_end, by = 1)) %>%
   dplyr::select(-time) %>%
   right_join(pomp_data %>%
               dplyr::select(Date, cases), by = "Date") %>%
   tidyr::fill(rel_beta_change) %>%  # fills in trailing NAs w/ last data point
   dplyr::select(-cases, -Date) %>%
-  mutate(time = 1:n())
+  mutate(time = 1:n()) %>%
+  # truncate the upper bound at 1, just rounding, really
+  mutate(rel_beta_change = ifelse(rel_beta_change > 1, 1, rel_beta_change))
 
 # Make sure that the covariate and data times match
 stopifnot(nrow(covar_table) == nrow(pomp_data))
@@ -181,11 +183,6 @@ mif_res$partable_natural <- mif_explore$partable_natural
 filename_mif <- here('output', paste0(filename_label, '_mif.rds'))
 saveRDS(object = mif_res, file = filename_mif)
 
-# also saved into a file with generic name, so it can easily be loaded by all
-# downstream scripts
-# filename_temp <- here('output','output_mif.rds')
-# saveRDS(object = mif_res, file = filename_temp)
-
 
 # Simulate the model to predict -----------------------------------------------------
 
@@ -211,11 +208,6 @@ source(here("code/forward-simulations/run-scenarios.R"))
 # ggsave(filename = paste0(fig_outpath, "/mif-trace.png"), 
 #        plot = mif_res$traceplot)
 
-
-# scenario_res <- runscenarios(mif_res = mif_res, 
-#                              pomp_model = pomp_model,
-#                              pomp_data = pomp_data,
-#                              filename_label = filename_label)
 
 
 
