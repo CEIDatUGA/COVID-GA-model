@@ -7,7 +7,6 @@ library(tidyverse)
 library(here)
 source(here("code/forward-simulations/simulate_trajectories.R"))
 
-
 # Load pomp model and MLEs ------------------------------------------------
 
 all_mif <- readRDS(filename_mif)
@@ -48,7 +47,7 @@ all_mles <- pf_logliks %>%
 
 # Make sure there are some decent MLEs, i.e., not -inf
 stopifnot(nrow(all_mles) > 0)
-
+# 
 obs_sim <- tibble()
 for(i in 1:nrow(all_mles)) {
   sim <- simulate(pomp_model,
@@ -59,17 +58,17 @@ for(i in 1:nrow(all_mles)) {
   obs_sim <- bind_rows(obs_sim, sim)
 }
 
-# Simulate just to extract data in same format
 obs_sim2 <- simulate(pomp_model,
                     params = all_mles[1, ],
                     nsim = 1,
                     format="data.frame",
                     include.data = TRUE)
-obs_sim2 <- obs_sim2 %>% 
-  filter(.id == "data")
+obs_sim2 <- obs_sim2 %>%
+  filter(.id == "data") %>% 
+  mutate(mle_id = 999)
 
-# Combine sims and data
 obs_sim <- bind_rows(obs_sim, obs_sim2)
+
 
 
 # Run simulations ---------------------------------------------------------
@@ -80,11 +79,13 @@ out_sims <- tibble()  # empty storage object
 covar_scens <- tibble()  # empty storage object
 for(i in 1:nrow(all_mles)){
   mles <- all_mles[i, ]
+  obs <- obs_sim %>% 
+    filter(mle_id %in% c(i, 999))
   
   sim_sql <- simulate_trajectories(pomp_model, start_date = "2020-03-01",
                                   covar_action = "status_quo", param_vals = mles,
                                   forecast_horizon_wks = weeks_ahead, 
-                                  nsims = num_sims, obs_sim = obs_sim) 
+                                  nsims = num_sims, obs_sim = obs) 
   sim_sq <- sim_sql$sims_ret %>%
     mutate(SimType = "status_quo")
   
@@ -93,7 +94,7 @@ for(i in 1:nrow(all_mles)){
                                   covar_no_action = 1,
                                   param_vals = mles,
                                   forecast_horizon_wks = weeks_ahead,
-                                  nsims = num_sims, obs_sim = obs_sim)
+                                  nsims = num_sims, obs_sim = obs)
   sim_na <- sim_nal$sims_ret %>%
     mutate(SimType = "no_intervention") %>%
     mutate(.id = as.character(.id))  # added to match the non-counterfactual returns
@@ -102,7 +103,7 @@ for(i in 1:nrow(all_mles)){
                                      covar_action = "lowest_sd", 
                                      param_vals = mles,
                                      forecast_horizon_wks = weeks_ahead,
-                                     nsims = num_sims, obs_sim = obs_sim)
+                                     nsims = num_sims, obs_sim = obs)
   sim_minsd <- sim_minsdl$sims_ret %>%
     mutate(SimType = "lowest_sd") %>%
     mutate(.id = as.character(.id))  # added to match the non-counterfactual returns
@@ -111,7 +112,7 @@ for(i in 1:nrow(all_mles)){
                                   covar_action = "more_sd",
                                   param_vals = mles, 
                                   forecast_horizon_wks = weeks_ahead,
-                                  nsims = num_sims, obs_sim = obs_sim) 
+                                  nsims = num_sims, obs_sim = obs) 
   sim_msd <- sim_msdl$sims_ret %>%
     mutate(SimType = "linear_increase_sd")
   
@@ -119,7 +120,7 @@ for(i in 1:nrow(all_mles)){
                                   covar_action = "less_sd",
                                   param_vals = mles, 
                                   forecast_horizon_wks = weeks_ahead,
-                                  nsims = num_sims, obs_sim = obs_sim)
+                                  nsims = num_sims, obs_sim = obs)
   sim_lsd <- sim_lsdl$sims_ret %>%
     mutate(SimType = "linear_decrease_sd")
   
@@ -127,7 +128,7 @@ for(i in 1:nrow(all_mles)){
                                    covar_action = "normal",
                                    param_vals = mles, 
                                    forecast_horizon_wks = weeks_ahead,
-                                   nsims = num_sims, obs_sim = obs_sim)
+                                   nsims = num_sims, obs_sim = obs)
   sim_nor <- sim_norl$sims_ret %>%
     mutate(SimType = "return_normal")
   
