@@ -7,62 +7,14 @@
 # to the pMCMC script for final inference and forecasting.
 
 
-# # Clear the decks ---------------------------------------------------------
-# 
-rm(list = ls(all.names = TRUE))
-# 
-# 
-# # Load libraries ----------------------------------------------------------
-# 
+
+# Load libraries ----------------------------------------------------------
 library(tidyverse)
 library(pomp)
 library(here)
 library(doParallel)
 library(foreach)
 
-
-# Load the mif and pomp objects -------------------------------------------
-pomp_object <- readRDS(here("output/pomp-model.RDS"))
-filename = here('output/mif-results.RDS')
-mif_res_list <- readRDS(filename)
-mifs = mif_res_list$mif_runs
-pfs = mif_res_list$pf_runs
-
-
-# Compute some results -------------------------------------------------------
-# for each initial condition, take the pf runs and compute mean log likelihood
-n_ini_cond = length(mifs)
-ll = list()
-for (i in 1:n_ini_cond) #do last part not in parallel
-{
-  ll1 <- sapply(pfs[[i]], logLik)
-  ll[[i]] <- logmeanexp(ll1, se = TRUE)
-}
-
-# get estimated values for all parameters that were estimated for each run 
-mif_coefs <- data.frame(matrix(unlist(sapply(mifs, coef)), 
-                               nrow = length(mifs), 
-                               byrow = T))
-colnames(mif_coefs) <- names(coef(mifs[[1]]))  # names are the same for all mifs
-
-# convert the list containing the log likelihoods for 
-# each run stored in ll into a data frame
-ll_df <- data.frame(matrix(unlist(ll), nrow=n_ini_cond, byrow=T))
-
-# combine the ll_df and mif_coefs data frames. 
-# Also do some cleaning/renaming
-lls <- ll_df %>%
-  dplyr::rename("LogLik" = X1,
-                "LogLik_SE" = X2) %>%
-  dplyr::mutate(MIF_ID = 1:n()) %>%
-  dplyr::select(MIF_ID, LogLik, LogLik_SE) %>%
-  bind_cols(mif_coefs) %>%
-  dplyr::arrange(-LogLik)  %>%
-  filter(LogLik > min(LogLik))
-
-mif_id <- lls %>%
-  filter(LogLik == max(LogLik)) %>%
-  pull(MIF_ID)
 
 # Define summary statistic (probes) functions -----------------------------
 
@@ -77,11 +29,11 @@ get_stat_times <- function(obs_cases) {
   return(c(d0 = d0, d1 = d1))
 }
 
-ds <- get_stat_times(as.numeric(pomp_object@data["cases", ]))
+ds <- get_stat_times(pomp_data$cases)
 d0 <- ds["d0"]
 d1 <- ds["d1"]
-if(is.infinite(d1)) d1 <- ncol(pomp_object@data) - 1
-d2 <- ncol(pomp_object@data)
+if(is.infinite(d1)) d1 <- nrow(pomp_data) - 1
+d2 <- nrow(pomp_data)
 
 # pomp won't allow variables in the probe functions, so we have to make
 # these time-dependent ones on the fly here.
@@ -122,27 +74,13 @@ dexp1 <- eval(parse(text = paste0("function(x) { max(x[3, ]) / which.max(x[1, ])
 dregcoef <- function(x) { as.numeric(coef(lm(x[3,] ~ seq_along(x[3,])))[2]) }
 
 
-# Define the prior density ------------------------------------------------     
-
-# Read in from elsewhere
-prior_dens <- readRDS(here("output/prior-dens-object.RDS"))
 
 
-# Set up parameters to estimate and ABC variables -------------------------
-
-############################################################################
-# Load list that defines variables and parameters and their values
-############################################################################
-filename = here('output/var-par-definitions.RDS')
-par_var_list <- readRDS(filename) 
-allparvals <- par_var_list$allparvals
-params_to_estimate = par_var_list$params_to_estimate
-inivals_to_estimate = par_var_list$inivals_to_estimate
-params_to_estimate <- c(params_to_estimate,inivals_to_estimate)
+# Set ABC algorithm settings ----------------------------------------------
 
 # Set noise level for parameter random walk for proposals
-rw.sd <- rep(0.175, length(params_to_estimate))
-names(rw.sd) <- params_to_estimate
+rw.sd <- rep(0.175, length(par_var_list$allparvals))
+names(rw.sd) <- names(par_var_list$allparvals)
 
 # Define the probe list
 plist <- list(
@@ -152,9 +90,9 @@ plist <- list(
 )
 
 # Make a new pomp object for ABC
-abc_pomp_object <- pomp(pomp_object,
+abc_pomp_object <- pomp(pomp_model,
                         dprior = prior_dens,
-                        paramnames = params_to_estimate,
+                        paramnames = par_var_list$parnames,
                         cdir = getwd())  # cdir to avoid weird windows error
 
 # The statistics don't like NA, switch to 0 for now
