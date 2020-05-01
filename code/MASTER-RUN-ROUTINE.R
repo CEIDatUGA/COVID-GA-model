@@ -50,39 +50,6 @@ stamp <- paste(lubridate::date(tm),
 filename_label <- paste(location,datasource,stamp,sep="_") 
 
 
-# Define parameter and variable names -------------------------------------     
-# define parameters to be estimated
-# is passed to setparsvars function. 
-# If set to "all", all params are estimated
-
-# Parameters
-est_these_pars = c("log_beta_s", 
-                   "frac_hosp", "frac_dead", 
-                   "max_detect_par", 
-                   "log_sigma_dw",
-                   "log_theta_cases", "log_theta_hosps", "log_theta_deaths")
-
-# Initial conditions
-# est_these_inivals = c("E1_0", "Ia1_0", "Isu1_0", "Isd1_0")
-est_these_inivals = ""  # no initial conditions
-
-# source function which assigns values to variables and initial conditions
-# specifies parameters that are being fitted
-source(here("code/model-setup/setparsvars.R"))
-
-# run function that sets variables and parameters 
-# functions doesn't return anything, results are written to file
-par_var_list <- setparsvars(est_these_pars = est_these_pars, 
-                            est_these_inivals = est_these_inivals, 
-                            tint = 12)  # tint = March 12 assuming March 1 start
-
-
-# Set priors --------------------------------------------------------------     
-# needs results from setparsvars 
-source(here("code/model-setup/setpriors.R"))
-prior_dens <- setpriors(par_var_list)  # for ABC and pMCMC routines
-
-
 # Run data cleaning script. Return data ready for pomp --------------------
 
 source(here("code/data-processing/loadcleanCTdata.R"))
@@ -94,6 +61,46 @@ if (datasource == "COV") {
 if (datasource == "GAD") {  
   pomp_data <- loadcleanGDPHdata(start_date = "2020-03-01")
 }
+
+
+# Define parameter and variable names -------------------------------------     
+# define parameters to be estimated
+# is passed to setparsvars function. 
+# If set to "all", all params are estimated
+
+# Parameters
+est_these_pars = c("log_beta_s", 
+                   "frac_hosp", "frac_dead", 
+                   "max_detect_par", 
+                   "log_sigma_dw",
+                   "log_theta_cases", "log_theta_hosps", "log_theta_deaths")
+knot_coefs <-  paste0("b", 1:n_knots)
+est_these_pars <- c(est_these_pars, knot_coefs)
+
+# Initial conditions
+# est_these_inivals = c("E1_0", "Ia1_0", "Isu1_0", "Isd1_0")
+est_these_inivals = ""  # no initial conditions
+
+# Number of bspline knots
+n_knots <- round(nrow(pomp_data) / 7)
+
+# source function which assigns values to variables and initial conditions
+# specifies parameters that are being fitted
+source(here("code/model-setup/setparsvars.R"))
+
+# run function that sets variables and parameters 
+# functions doesn't return anything, results are written to file
+par_var_list <- setparsvars(est_these_pars = est_these_pars, 
+                            est_these_inivals = est_these_inivals, 
+                            tint = 12,  # tint = March 12 assuming March 1 start
+                            n_knots = n_knots)  
+
+
+# Set priors --------------------------------------------------------------     
+# needs results from setparsvars 
+# source(here("code/model-setup/setpriors.R"))
+# prior_dens <- setpriors(par_var_list)  # for ABC and pMCMC routines
+
 
 
 
@@ -113,8 +120,25 @@ covar_table <- covar_table %>%
   # truncate the upper bound at 1, just rounding, really
   mutate(rel_beta_change = ifelse(rel_beta_change > 1, 1, rel_beta_change))
 
+seas <- pomp::bspline.basis(covar_table$time,
+                                     nbasis = nrow(covar_table) / 7,
+                                     degree = 3) 
+
+covar = covariate_table(
+  t = pomp_data$time,
+  seas=bspline.basis(
+    x=t,
+    nbasis=n_knots,
+    degree=3
+  ),
+  rel_beta_change = as.matrix(covar_table$rel_beta_change),
+  times="t",
+  order = "constant"
+)
+
+
 # Make sure that the covariate and data times match
-stopifnot(nrow(covar_table) == nrow(pomp_data))
+# stopifnot(nrow(covar_table) == nrow(pomp_data))
 
 
 # Make a pomp model -------------------------------------------------------
@@ -123,7 +147,8 @@ stopifnot(nrow(covar_table) == nrow(pomp_data))
 source(here("code/model-setup/makepompmodel.R"))
 pomp_model <- makepompmodel(par_var_list = par_var_list, 
                             pomp_data = pomp_data, 
-                            covar_table = covar_table)
+                            covar_table = covar,
+                            n_knots = n_knots)
 
 
 # Run the mif fitting routine ---------------------------------------------

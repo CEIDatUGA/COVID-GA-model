@@ -1,4 +1,4 @@
-setparsvars <- function(est_these_pars, est_these_inivals, tint)
+setparsvars <- function(est_these_pars, est_these_inivals, tint, n_knots)
 {
 
   #this is a simple script that specifies model parameters, and variable names
@@ -89,6 +89,10 @@ setparsvars <- function(est_these_pars, est_these_inivals, tint)
                log_theta_deaths = log(10),
                log_sigma_dw = log(0.1)
   )
+  
+  knot_coefs <- rep(1, n_knots)
+  names(knot_coefs) <- paste0("b", 1:n_knots)
+  parvals = c(parvals, knot_coefs) 
   
   parnames = names(parvals)
   
