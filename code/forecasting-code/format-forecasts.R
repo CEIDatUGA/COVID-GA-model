@@ -24,7 +24,7 @@ library(pomp)
 
 # Load the simulations ----------------------------------------------------
 
-all_sims <- readRDS(here("output/simulation-scenarios/simulation-scenarios-2020-04-23.rds"))
+all_sims <- readRDS(here("output/Georgia_COV_2020-04-30-11-23_simulation-scenarios.rds"))
 hosps_forecasts <- all_sims %>%
   filter(SimType == "status_quo") %>%
   filter(Date >= Sys.Date()) %>%
