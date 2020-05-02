@@ -12,9 +12,9 @@
 # Start with a clean workspace to avoid downstream errors -----------------
 # rm(list = ls(all.names = TRUE))
 
-args <- commandArgs(trailingOnly = F)
-myargument <- args[length(args)]
-myargument <- as.numeric(sub("-","",myargument))
+# args <- commandArgs(trailingOnly = F)
+# myargument <- args[length(args)]
+# myargument <- as.numeric(sub("-","",myargument))
 myargument <- 1
 
 # Necessary libraries ------------------------------------------------------
@@ -22,7 +22,7 @@ myargument <- 1
 # so we can run various scripts independently 
 # these libraries are needed by various scripts
 library(here)
-
+library(pomp)
 
 # Set state, data source and a time-stamp variable -------------------------     
 
@@ -151,7 +151,7 @@ pomp_model <- makepompmodel(par_var_list = par_var_list,
 # betas <- rnorm(n_knots, 0, 10)
 # betanames <- paste0("b", 1:n_knots)
 # simparams[betanames] <- betas
-# sims <- simulate(pomp_model, nsim = 1, 
+# sims <- simulate(pomp_model, nsim = 1,
 #                  params = simparams, format="data.frame")
 # plot(sims$cases)
 
@@ -160,16 +160,16 @@ pomp_model <- makepompmodel(par_var_list = par_var_list,
 parallel_info = list()
 parallel_info$parallel_run <- TRUE
 # parallel_info$num_cores <- parallel::detectCores() - 2  # alter as needed
-parallel_info$num_cores <- 30  # on HPC
+parallel_info$num_cores <- 10  # on HPC
 
 # specify settings for mif2 procedure
 # two rounds of MIF
 # these 2 rounds are currently hard-coded into runmif
 mif_settings = list()
-mif_settings$mif_num_particles  <- c(2000, 2000)
-mif_settings$mif_num_iterations <- c(150, 150)
+mif_settings$mif_num_particles  <- c(200, 200)
+mif_settings$mif_num_iterations <- c(15, 15)
 mif_settings$mif_cooling_fracs <- c(0.9, 0.7)
-mif_settings$pf_num_particles <- 5000
+mif_settings$pf_num_particles <- 500
 mif_settings$pf_reps <- 10
 
 # source the mif function
@@ -199,7 +199,7 @@ mif_res$filename_label <- filename_label
 # currently returns a trace plot figure (as ggplot object)
 # and 2 parameter tables. optional if turned on a likelihood slice plot
 source(here("code/result-exploration/exploremifresults.R"))
-mif_explore <- exploremifresults(mif_res = mif_res)
+mif_explore <- exploremifresults(mif_res = mif_res, n_knots = n_knots)
 
 #add results from mif exploration to mif_res object
 mif_res$traceplot <- mif_explore$traceplot

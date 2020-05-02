@@ -1,7 +1,7 @@
 # exploremifresults.R
 # This function takes results produced by run-mif for exploration/plotting
 
-exploremifresults <- function(mif_res)
+exploremifresults <- function(mif_res, n_knots)
 {
   
   #  ---------------------------------------------------------
@@ -154,6 +154,7 @@ exploremifresults <- function(mif_res)
                    "logis", "logis", "logis", #frac
                    "log", "log", "log", #theta
                    "log", #sigma
+                   rep("lin", n_knots),  # beta spline coefficients
                    "lin", #S0 
                    "log", "log", "log","log", #E/Ia/Isu/Isd
                    "lin", "lin", "lin", "lin" #C/H/R/D

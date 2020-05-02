@@ -1,8 +1,8 @@
 /* pomp C snippet file: tmp1 */
-/* Time: 2020-05-02 08:01:33.130 -0600 */
-/* Salt: 9F6EF4261FF2455BDB724505 */
+/* Time: 2020-05-02 10:49:01.823 -0400 */
+/* Salt: 9390AF99D2A78D52210A65F1 */
 
-#include <C:/Users/atredennick/Documents/R/win-library/3.6/pomp/include/pomp.h>
+#include <pomp.h>
 #include <R_ext/Rdynload.h>
 
 int K = 9; 
