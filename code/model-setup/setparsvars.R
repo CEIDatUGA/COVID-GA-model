@@ -90,7 +90,7 @@ setparsvars <- function(est_these_pars, est_these_inivals, tint, n_knots)
                log_sigma_dw = log(0.1)
   )
   
-  knot_coefs <- rep(1, n_knots)
+  knot_coefs <- rep(10, n_knots)
   names(knot_coefs) <- paste0("b", 1:n_knots)
   parvals = c(parvals, knot_coefs) 
   

@@ -31,6 +31,7 @@ makepompmodel <- function(par_var_list, pomp_data, covar_table, n_knots)
     double detect_frac, diag_speedup; // fraction of those that get eventually diagnosed
     double beta;
     double dW;  // environmental stochasticity/noise
+    double trend;
   
     E_tot = E1+E2+E3+E4;  // all pre-symptomatic
     Ia_tot = Ia1+Ia2+Ia3+Ia4;  // all asymptomatic
@@ -58,7 +59,9 @@ makepompmodel <- function(par_var_list, pomp_data, covar_table, n_knots)
     
     //foi = rel_beta_change*( pow( ( 1/(1+exp(-5.65)) ), t ) ) * (exp(log_beta_s)*(Isd_tot + Isu_tot + 1/(1+exp(trans_e))*E_tot + 1/(1+exp(trans_a))*Ia_tot + 1/(1+exp(trans_c))*C_tot+ 1/(1+exp(trans_h))*H_tot));
     //foi = rel_beta_change * (exp(log_beta_s)*(Isd_tot + Isu_tot + 1/(1+exp(trans_e))*E_tot + 1/(1+exp(trans_a))*Ia_tot + 1/(1+exp(trans_c))*C_tot+ 1/(1+exp(trans_h))*H_tot));
-    beta = rel_beta_change * exp(log_beta_s + dot_product(K, &b1, &seas_1));
+    
+    trend = dot_product(K, &b1, &seas_1);
+    beta = rel_beta_change * exp(log_beta_s) * (exp(trend) / (1+exp(trend)));
     foi = beta * (Isd_tot + Isu_tot + 1/(1+exp(trans_e))*E_tot + 1/(1+exp(trans_a))*Ia_tot + 1/(1+exp(trans_c))*C_tot+ 1/(1+exp(trans_h))*H_tot);
     
     

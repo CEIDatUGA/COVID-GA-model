@@ -15,7 +15,7 @@
 args <- commandArgs(trailingOnly = F)
 myargument <- args[length(args)]
 myargument <- as.numeric(sub("-","",myargument))
-
+myargument <- 1
 
 # Necessary libraries ------------------------------------------------------
 # We only libraries needed for this script, others are loaded in each code
@@ -74,6 +74,7 @@ est_these_pars = c("log_beta_s",
                    "max_detect_par", 
                    "log_sigma_dw",
                    "log_theta_cases", "log_theta_hosps", "log_theta_deaths")
+n_knots <- round(nrow(pomp_data) / 7)
 knot_coefs <-  paste0("b", 1:n_knots)
 est_these_pars <- c(est_these_pars, knot_coefs)
 
@@ -81,8 +82,6 @@ est_these_pars <- c(est_these_pars, knot_coefs)
 # est_these_inivals = c("E1_0", "Ia1_0", "Isu1_0", "Isd1_0")
 est_these_inivals = ""  # no initial conditions
 
-# Number of bspline knots
-n_knots <- round(nrow(pomp_data) / 7)
 
 # source function which assigns values to variables and initial conditions
 # specifies parameters that are being fitted
@@ -120,13 +119,10 @@ covar_table <- covar_table %>%
   # truncate the upper bound at 1, just rounding, really
   mutate(rel_beta_change = ifelse(rel_beta_change > 1, 1, rel_beta_change))
 
-seas <- pomp::bspline.basis(covar_table$time,
-                                     nbasis = nrow(covar_table) / 7,
-                                     degree = 3) 
 
 covar = covariate_table(
   t = pomp_data$time,
-  seas=bspline.basis(
+  seas = bspline.basis(
     x=t,
     nbasis=n_knots,
     degree=3
@@ -150,6 +146,14 @@ pomp_model <- makepompmodel(par_var_list = par_var_list,
                             covar_table = covar,
                             n_knots = n_knots)
 
+# Simulate from the model as a test
+# simparams <- par_var_list$allparvals
+# betas <- rnorm(n_knots, 0, 10)
+# betanames <- paste0("b", 1:n_knots)
+# simparams[betanames] <- betas
+# sims <- simulate(pomp_model, nsim = 1, 
+#                  params = simparams, format="data.frame")
+# plot(sims$cases)
 
 # Run the mif fitting routine ---------------------------------------------
 # turn on parallel running or not

@@ -1,6 +1,6 @@
 /* pomp C snippet file: tmp1 */
-/* Time: 2020-05-01 17:15:07.029 -0600 */
-/* Salt: C1FF0A3ED5D96F561AEEF2CE */
+/* Time: 2020-05-02 08:01:33.130 -0600 */
+/* Salt: 9F6EF4261FF2455BDB724505 */
 
 #include <C:/Users/atredennick/Documents/R/win-library/3.6/pomp/include/pomp.h>
 #include <R_ext/Rdynload.h>
@@ -316,6 +316,7 @@ void __pomp_stepfn (double *__x, const double *__p, const int *__stateindex, con
     double detect_frac, diag_speedup; // fraction of those that get eventually diagnosed
     double beta;
     double dW;  // environmental stochasticity/noise
+    double trend;
   
     E_tot = E1+E2+E3+E4;  // all pre-symptomatic
     Ia_tot = Ia1+Ia2+Ia3+Ia4;  // all asymptomatic
@@ -343,7 +344,9 @@ void __pomp_stepfn (double *__x, const double *__p, const int *__stateindex, con
     
     //foi = rel_beta_change*( pow( ( 1/(1+exp(-5.65)) ), t ) ) * (exp(log_beta_s)*(Isd_tot + Isu_tot + 1/(1+exp(trans_e))*E_tot + 1/(1+exp(trans_a))*Ia_tot + 1/(1+exp(trans_c))*C_tot+ 1/(1+exp(trans_h))*H_tot));
     //foi = rel_beta_change * (exp(log_beta_s)*(Isd_tot + Isu_tot + 1/(1+exp(trans_e))*E_tot + 1/(1+exp(trans_a))*Ia_tot + 1/(1+exp(trans_c))*C_tot+ 1/(1+exp(trans_h))*H_tot));
-    beta = rel_beta_change * exp(log_beta_s + dot_product(K, &b1, &seas_1));
+    
+    trend = dot_product(K, &b1, &seas_1);
+    beta = rel_beta_change * exp(log_beta_s) * (exp(trend) / (1+exp(trend)));
     foi = beta * (Isd_tot + Isu_tot + 1/(1+exp(trans_e))*E_tot + 1/(1+exp(trans_a))*Ia_tot + 1/(1+exp(trans_c))*C_tot+ 1/(1+exp(trans_h))*H_tot);
     
     
