@@ -24,13 +24,14 @@ library(pomp)
 
 # Load the simulations ----------------------------------------------------
 
+most_recent_files <- tail(list.files(path = here("output"), "Georgia_COV"), 3)
+filename_sims <- most_recent_files[grep(pattern = "simulation-scenarios", most_recent_files)]
 all_sims <- readRDS(here("output/Georgia_COV_2020-04-30-11-23_simulation-scenarios.rds"))
-hosps_forecasts <- all_sims %>%
+forecasts <- all_sims %>%
   filter(SimType == "status_quo") %>%
   filter(Date >= Sys.Date()) %>%
   mutate(Rep = as.numeric(as.factor(paste(.id, mle_id, sep = "-")))) %>%
-  dplyr::select(Rep, Date, hosps) %>%
-  rename("H_new" = hosps) %>%
+  dplyr::select(Rep, Date, cases, hosps, deaths) %>%
   arrange(Rep, Date) %>%
   as.data.frame()
 
@@ -43,9 +44,9 @@ hosps_forecasts <- all_sims %>%
 #   geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2) +
 #   geom_line()
 
-filename <- paste0("output/hospital-forecasts/hosps-forecasts-", Sys.Date(), ".rds")
-saveRDS(object = hosps_forecasts,
-        file = filename)
+filename <- paste0("output/forecasts/forecasts-", Sys.Date(), ".rds")
+saveRDS(object = forecasts,
+        file = here(filename))
 # 
 # 
 # 
