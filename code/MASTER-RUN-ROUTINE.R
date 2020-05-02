@@ -12,10 +12,10 @@
 # Start with a clean workspace to avoid downstream errors -----------------
 # rm(list = ls(all.names = TRUE))
 
-args <- commandArgs(trailingOnly = F)
-myargument <- args[length(args)]
-myargument <- as.numeric(sub("-","",myargument))
-
+# args <- commandArgs(trailingOnly = F)
+# myargument <- args[length(args)]
+# myargument <- as.numeric(sub("-","",myargument))
+myargument <- 1
 
 # Necessary libraries ------------------------------------------------------
 # We only libraries needed for this script, others are loaded in each code
