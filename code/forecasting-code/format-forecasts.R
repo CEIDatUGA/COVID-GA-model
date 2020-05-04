@@ -26,7 +26,7 @@ library(pomp)
 
 most_recent_files <- tail(list.files(path = here("output"), "Georgia_COV"), 3)
 filename_sims <- most_recent_files[grep(pattern = "simulation-scenarios", most_recent_files)]
-all_sims <- readRDS(here("output/Georgia_COV_2020-04-30-11-23_simulation-scenarios.rds"))
+all_sims <- readRDS(here("output", filename_sims))
 forecasts <- all_sims %>%
   filter(SimType == "status_quo") %>%
   filter(Date >= Sys.Date()) %>%
