@@ -35,6 +35,20 @@ forecasts <- all_sims %>%
   arrange(Rep, Date) %>%
   as.data.frame()
 
+
+forecasts %>% 
+  filter(Date == "2020-05-15") %>%
+  gather("key", "value", -Date, -Rep) %>%
+  group_by(Date, key) %>%
+  summarise(meanval = mean(value)) 
+
+forecasts %>% 
+  filter(Date == "2020-06-01") %>%
+  gather("key", "value", -Date, -Rep) %>%
+  group_by(Date, key) %>%
+  summarise(meanval = mean(value)) 
+
+
 # hosps_forecasts %>%
 #   group_by(Date) %>%
 #   summarise(lower = quantile(H_new, 0.1),
