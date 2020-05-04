@@ -201,8 +201,8 @@ source(here("code/forward-simulations/run-scenarios.R"))
 # if(datasource == "GAD") {
 #   fig_outpath <- here("output/figures/gadph-figures/")
 # }
-# 
-# source(here("code/plotting/plot-scenarios.R"))
+
+source(here("code/plotting/plot-scenarios.R"))
 # 
 # # And add the mif trace
 # ggsave(filename = paste0(fig_outpath, "/mif-trace.png"), 
