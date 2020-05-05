@@ -192,6 +192,8 @@ source(here("code/forward-simulations/simulate_trajectories.R"))
 # Source the script run the scenarios -- saves a file this time
 source(here("code/forward-simulations/run-scenarios.R"))
 
+source(here("code/forecasting-code/format-forecasts.R"))
+
 
 # Make the plots for the website ------------------------------------------
 
@@ -202,7 +204,7 @@ source(here("code/forward-simulations/run-scenarios.R"))
 #   fig_outpath <- here("output/figures/gadph-figures/")
 # }
 
-source(here("code/plotting/plot-scenarios.R"))
+# source(here("code/plotting/plot-scenarios.R"))
 # 
 # # And add the mif trace
 # ggsave(filename = paste0(fig_outpath, "/mif-trace.png"), 
