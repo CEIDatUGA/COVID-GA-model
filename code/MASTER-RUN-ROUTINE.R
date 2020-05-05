@@ -74,9 +74,9 @@ est_these_pars = c("log_beta_s",
                    "max_detect_par", 
                    "log_sigma_dw",
                    "log_theta_cases", "log_theta_hosps", "log_theta_deaths")
-n_knots <- round(nrow(pomp_data) / 7)
-knot_coefs <-  paste0("b", 1:n_knots)
-est_these_pars <- c(est_these_pars, knot_coefs)
+# n_knots <- round(nrow(pomp_data) / 7)
+# knot_coefs <-  paste0("b", 1:n_knots)
+# est_these_pars <- c(est_these_pars, knot_coefs)
 
 # Initial conditions
 # est_these_inivals = c("E1_0", "Ia1_0", "Isu1_0", "Isd1_0")
@@ -167,7 +167,7 @@ parallel_info$num_cores <- 30  # on HPC
 # these 2 rounds are currently hard-coded into runmif
 mif_settings = list()
 mif_settings$mif_num_particles  <- c(2000, 2000)
-mif_settings$mif_num_iterations <- c(100, 100)
+mif_settings$mif_num_iterations <- c(150, 150)
 mif_settings$mif_cooling_fracs <- c(0.9, 0.7)
 mif_settings$pf_num_particles <- 5000
 mif_settings$pf_reps <- 10
