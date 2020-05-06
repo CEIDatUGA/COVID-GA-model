@@ -29,7 +29,7 @@ filename_sims <- most_recent_files[grep(pattern = "simulation-scenarios", most_r
 all_sims <- readRDS(here("output", filename_sims))
 forecasts <- all_sims %>%
   filter(SimType == "status_quo") %>%
-  filter(Date >= Sys.Date()) %>%
+  filter(Period == "Future") %>%
   mutate(Rep = as.numeric(as.factor(paste(.id, mle_id, sep = "-")))) %>%
   dplyr::select(Rep, Date, cases, hosps, deaths) %>%
   arrange(Rep, Date) %>%
