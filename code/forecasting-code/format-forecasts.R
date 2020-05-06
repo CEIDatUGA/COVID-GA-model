@@ -58,7 +58,8 @@ forecasts <- all_sims %>%
 #   geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2) +
 #   geom_line()
 
-filename <- paste0("output/forecasts/forecasts-", Sys.Date(), ".rds")
+fore_date <- min(forecasts$Date)
+filename <- paste0("output/forecasts/forecasts-", fore_date, ".rds")
 saveRDS(object = forecasts,
         file = here(filename))
 # 
