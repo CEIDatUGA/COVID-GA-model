@@ -37,8 +37,7 @@ pred <- predict(mod)
 
 # Save the output ---------------------------------------------------------
 
-covar_table <- data.frame(state = rep(single_state$state_code, nrow(unacast)),
-                          Date = unacast$Date,
+covar_table <- data.frame(Date = unacast$Date,
                           time = pred$x,
                           rel_beta_change = pred$y)
 saveRDS(covar_table, file = paste("data/rel-beta-change-covar-", #main title
