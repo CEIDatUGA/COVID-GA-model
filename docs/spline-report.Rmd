@@ -177,3 +177,78 @@ points(mifSpline$pomp_data$cases, pch = 19)
 ```
 
 ### With spline
+```{r nosplinefit}
+mifs <- mifNoSpline$mif_runs
+pfs <- mifNoSpline$pf_runs
+pomp_model <- mifNoSpline$pomp_model
+
+n_ini_cond = length(pfs)
+ll = list()
+for (i in 1:n_ini_cond) {
+  ll1 <- sapply(pfs[[i]], logLik)
+  ll[[i]] <- logmeanexp(ll1, se = TRUE)
+}
+
+# get estimated values for all parameters that were estimated for each run 
+mif_coefs <- data.frame(matrix(unlist(sapply(mifs, coef)), 
+                               nrow = length(mifs), 
+                               byrow = T))
+colnames(mif_coefs) <- names(coef(mifs[[1]]))  # names are the same for all mifs
+
+# convert the list containing the log likelihoods for 
+# each run stored in ll into a data frame
+ll_df <- data.frame(matrix(unlist(ll), nrow=n_ini_cond, byrow=T))
+
+# combine the ll_df and mif_coefs data frames. 
+# Also do some cleaning/renaming
+pf_logliks <- ll_df %>%
+  dplyr::rename("LogLik" = X1,
+                "LogLik_SE" = X2) %>%
+  dplyr::mutate(MIF_ID = 1:n()) %>%
+  dplyr::select(MIF_ID, LogLik, LogLik_SE) %>%
+  bind_cols(mif_coefs) %>%
+  dplyr::arrange(-LogLik)
+
+all_mles <- pf_logliks %>%
+  filter(LogLik > (max(LogLik)-2)) %>%
+  dplyr::select(-MIF_ID, -LogLik, -LogLik_SE)
+
+sims <- matrix(NA, nrow = nrow(mifNoSpline$pomp_data), ncol = nrow(all_mles))
+for(i in 1:nrow(all_mles)) {
+  simsraw <- simulate(pomp_model, nsim = 100, format = "data.frame", params = all_mles[i,])
+  simsout <- simsraw %>%
+    group_by(time) %>%
+    summarise(cases = mean(cases))
+  sims[,i] <- simsout$cases
+}
+matplot(sims, type = "l")
+lines(rowMeans(sims), lwd = 5)
+# plot(sims$cases, type  ='l', ylim = c(0,2000))
+points(mifSpline$pomp_data$cases, pch = 19)
+```
+
+### Model comparison
+Here I compare the models via log likelihood and AIC.
+Note that for AIC I just assume that the no spline mode has 0 parameters and that the spline model has 9 paramters.
+This gets at the relative difference between the two: the nine basis function coefficients.
+```{r aic}
+maxLLSpline <- mifSpline$partable[1,"LogLik"]
+maxLLNoSpline <- mifNoSpline$partable[1, "LogLik"]
+
+aicSpline <- 2*9 - 2*maxLLSpline
+aicNoSpline <- - 2*maxLLNoSpline
+
+modComp <- tibble(Model = c("Without Spline", "WIth Spline"),
+                  `Log Likelihood` = c(maxLLNoSpline, maxLLSpline),
+                  `AIC` = c(aicNoSpline, aicSpline))
+kable(modComp)
+```
+
+## Discussion
+
+Both models are equivalent according to AIC; judging be log likelihood alone, the "with spline" model is superior.
+The two models lead to rather different trajectories.
+The "with spline" model suggests a flattening of the curve.
+The "no spline" model (which is the default) suggests a continual growth in number of cases.
+
+I think the real question is whether we "buy" the resulting trend suggested by the fitted model in terms of how $\beta$ is modulated by mobility data and the latent process. 
