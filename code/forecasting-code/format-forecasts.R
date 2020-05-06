@@ -29,7 +29,7 @@ filename_sims <- most_recent_files[grep(pattern = "simulation-scenarios", most_r
 all_sims <- readRDS(here("output", filename_sims))
 forecasts <- all_sims %>%
   filter(SimType == "status_quo") %>%
-  filter(Date >= Sys.Date()) %>%
+  filter(Period == "Future") %>%
   mutate(Rep = as.numeric(as.factor(paste(.id, mle_id, sep = "-")))) %>%
   dplyr::select(Rep, Date, cases, hosps, deaths) %>%
   arrange(Rep, Date) %>%
@@ -58,7 +58,8 @@ forecasts <- all_sims %>%
 #   geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2) +
 #   geom_line()
 
-filename <- paste0("output/forecasts/forecasts-", Sys.Date(), ".rds")
+fore_date <- min(forecasts$Date)
+filename <- paste0("output/forecasts/forecasts-", fore_date, ".rds")
 saveRDS(object = forecasts,
         file = here(filename))
 # 
