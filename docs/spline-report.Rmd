@@ -2,7 +2,9 @@
 title: "Modeling latent changes in COVID-19 transmission over time"
 author: "Andrew Tredennick"
 date: "`r format(Sys.time(), '%d %B, %Y')`"
-output: pdf_document
+output:
+  html_document:
+    df_print: paged
 ---
 
 ```{r setup, include=FALSE}
@@ -124,8 +126,15 @@ phi %>%
 ```
 
 And here are the two model fits.
+Note that both models include the mobility covariate; the "spline" model also includes the spline fit which additionaly augments the transmission rate (thick line in the figure above).
+
 ### With spline
-```{r splinefit}
+
+```{r fig1, echo=FALSE, fig.cap="Fit of model to data with the spline for tranmission reduction (cases). Heavy black line is the mean across all MLEs within 2 likelihood points of the maximum. Colored lines show individual MLE trajectories.", out.width = '50%'}
+knitr::include_graphics("spline.png")
+```
+
+```{r splinefit, eval = FALSE}
 mifs <- mifSpline$mif_runs
 pfs <- mifSpline$pf_runs
 pomp_model <- mifSpline$pomp_model
@@ -178,7 +187,13 @@ dev.off()
 ```
 
 ### Without spline
-```{r nosplinefit}
+
+```{r fig2, echo=FALSE, fig.cap="Fit of model to data with no spline for tranmission reduction (cases). Heavy black line is the mean across all MLEs within 2 likelihood points of the maximum. Colored lines show individual MLE trajectories.", out.width = '50%'}
+knitr::include_graphics("nospline.png")
+```
+
+
+```{r nosplinefit, eval = FALSE}
 mifs <- mifNoSpline$mif_runs
 pfs <- mifNoSpline$pf_runs
 pomp_model <- mifNoSpline$pomp_model
@@ -230,9 +245,11 @@ points(mifSpline$pomp_data$cases, pch = 19)
 dev.off()
 ```
 
+
+
 ### Model comparison
 Here I compare the models via log likelihood and AIC.
-Note that for AIC I just assume that the no spline mode has 0 parameters and that the spline model has 9 paramters.
+Note that for AIC I just assume that the no spline model has 0 parameters and that the spline model has 9 parameters.
 This gets at the relative difference between the two: the nine basis function coefficients.
 ```{r aic}
 maxLLSpline <- mifSpline$partable[1,"LogLik"]
@@ -247,6 +264,36 @@ modComp <- tibble(Model = c("Without Spline", "WIth Spline"),
 kable(modComp)
 ```
 
+### Parameter estimates
+```{r params}
+param_names <- rownames(mifNoSpline$partable_natural)
+paramsNoSpline <-  mifNoSpline$partable_natural %>%
+  mutate(Names = param_names) %>%
+  filter(is_fitted == "yes") %>%
+  dplyr::select(X1, Names) %>%
+  mutate(X1 = ifelse(Names == "beta_s", X1 * 10600000, X1)) %>%
+  rename("MLE" = X1)
+
+param_names <- rownames(mifSpline$partable_natural)
+paramsSpline <-  mifSpline$partable_natural %>%
+  mutate(Names = param_names) %>%
+  filter(is_fitted == "yes") %>%
+  dplyr::select(X1, Names) %>%
+  mutate(X1 = ifelse(Names == "beta_s", X1 * 10600000, X1)) %>%
+  filter(Names %in% paramsNoSpline$Names) %>%
+  rename("MLE" = X1)
+```
+
+#### MLEs from no spline fit
+```{r p1}
+kable(paramsNoSpline)
+```
+
+#### MLEs from spline fit
+```{r p2}
+kable(paramsSpline)
+```
+
 ## Discussion
 
 Both models are equivalent according to AIC; judging be log likelihood alone, the "with spline" model is superior.
@@ -255,3 +302,9 @@ The "with spline" model suggests a flattening of the curve.
 The "no spline" model (which is the default) suggests a continual growth in number of cases.
 
 I think the real question is whether we "buy" the resulting trend suggested by the fitted model in terms of how $\beta$ is modulated by mobility data and the latent process. 
+In particular, including the spline affects the estimates of fraction detected, fraction hospitalized, and fraction that die once in hospital.
+The estimates for these parameters seem much more plausible in the model *without the spline*.
+
+## Questions moving forward
+1. Do we stop this line of work given the unrealistic parameter estimates?
+2. Do implement the underlying spline trend in some other way?
