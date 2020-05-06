@@ -169,11 +169,12 @@ for(i in 1:nrow(all_mles)) {
     summarise(cases = mean(cases))
   sims[,i] <- simsout$cases
 }
+png("spline.png")
 matplot(sims, type = "l")
 lines(rowMeans(sims), lwd = 5)
 # plot(sims$cases, type  ='l', ylim = c(0,2000))
 points(mifSpline$pomp_data$cases, pch = 19)
-
+dev.off()
 ```
 
 ### Without spline
@@ -221,10 +222,12 @@ for(i in 1:nrow(all_mles)) {
     summarise(cases = mean(cases))
   sims[,i] <- simsout$cases
 }
+png("nospline.png")
 matplot(sims, type = "l")
 lines(rowMeans(sims), lwd = 5)
 # plot(sims$cases, type  ='l', ylim = c(0,2000))
 points(mifSpline$pomp_data$cases, pch = 19)
+dev.off()
 ```
 
 ### Model comparison
