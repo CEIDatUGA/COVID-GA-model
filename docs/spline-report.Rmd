@@ -124,8 +124,8 @@ phi %>%
 ```
 
 And here are the two model fits.
-### Without spline
-```{r nosplinefit}
+### With spline
+```{r splinefit}
 mifs <- mifSpline$mif_runs
 pfs <- mifSpline$pf_runs
 pomp_model <- mifSpline$pomp_model
@@ -176,7 +176,7 @@ points(mifSpline$pomp_data$cases, pch = 19)
 
 ```
 
-### With spline
+### Without spline
 ```{r nosplinefit}
 mifs <- mifNoSpline$mif_runs
 pfs <- mifNoSpline$pf_runs

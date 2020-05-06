@@ -74,7 +74,7 @@ est_these_pars = c("log_beta_s",
                    "max_detect_par", 
                    "log_sigma_dw",
                    "log_theta_cases", "log_theta_hosps", "log_theta_deaths")
-# n_knots <- round(nrow(pomp_data) / 7)
+n_knots <- round(nrow(pomp_data) / 7)
 # knot_coefs <-  paste0("b", 1:n_knots)
 # est_these_pars <- c(est_these_pars, knot_coefs)
 
