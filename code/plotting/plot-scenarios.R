@@ -254,13 +254,13 @@ lp <- ggplot(cum_summs_traj, aes(x = Date, y = Cases)) +
             color = mycols['red'], size = 1, linetype = 1) +
   geom_vline(aes(xintercept = as.numeric(foredate)), color = "grey35", linetype = 2) +
   ylab("Total number of\nconfirmed cases") +
-  scale_y_continuous(labels = scales::comma, limits = c(0, 2000000)) +
+  scale_y_continuous(labels = scales::comma, limits = c(0, 3300000)) +
   theme_minimal()
 
 ### plotly
 plotly_lp <- lp %>% plotly::ggplotly() %>%
   layout(showlegend=FALSE,
-         yaxis = list(range = c(0,2000000)),
+         yaxis = list(range = c(0,3300000)),
          xaxis = list(showline = TRUE),
          annotations= list(yref = 'y', xref = "x", y = 750000, x = as.numeric(foredate),
                            text = format(foredate, format="%b %d"),
@@ -279,7 +279,7 @@ rp <- ggplot(cumulative_summs %>%
   scale_color_manual(values = mycols.vec) +
   ylab("") +
   xlab("") +
-  scale_y_continuous(labels = scales::comma, limits = c(0, 2000000))+
+  scale_y_continuous(labels = scales::comma, limits = c(0, 3300000))+
   scale_x_discrete(labels = rep("", 6)) +
   theme_void() +
   guides(color = FALSE)
@@ -287,7 +287,7 @@ rp <- ggplot(cumulative_summs %>%
 ### plotly
 plotly_rp <- rp %>% plotly::ggplotly(tooltip='text') %>% 
   layout(showlegend=FALSE,
-         yaxis = list(range = c(0,2000000),
+         yaxis = list(range = c(0,3300000),
                       showline = TRUE,
                       side = "right",
                       title = "Final range across\nmultiple simulations",
@@ -466,7 +466,26 @@ ggsave(paste0(fig_outpath, "/all-projs-line-log.png"),
        width = 8.5, height = 4,
        units = "in", dpi = 300)
 
+# 2 scenarios - line, natural, with ribbons
 
+two_summs <- all_summs %>% 
+  filter(SimType == "4Return to normal" | SimType == "2Status quo")
+ggplot(two_summs, aes(x = Date, color = SimType)) +
+  geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2, color = NA) +
+  geom_line(aes(y = ptvalue)) +
+  geom_vline(aes(xintercept = Sys.Date()), color = "grey35", linetype = 2) +
+  facet_wrap(~Variable, ncol = 3, scales = "free_y",
+             labeller = labeller(Variable = variable_names)) +
+  scale_color_manual(values = mycols.vec, name = "", labels = scen_labs) +
+  theme_minimal() +
+  ylab("Number of persons") +
+  scale_y_continuous(labels = scales::comma) +
+  theme_minimal() +
+  theme(legend.position = "top") -> twoscensnat
+ggsave(paste0(fig_outpath, "/two-projs-line-nat.png"),
+       plot = twoscensnat,
+       width = 8.5, height = 4,
+       units = "in", dpi = 300)
 
 scen_labs <- c("1Increased social distancing" = "1. Increase\nsocial distancing",
                "2Status quo" = "2. Maintain\nsocial distancing\n(status quo)",
@@ -632,7 +651,7 @@ ggplot(all_summs %>%
   theme_minimal() +
   ylab("Number of persons") +
   scale_y_continuous(labels = scales::comma, trans = "log",
-                     limits = c(1,200000), breaks = c(10,100,1000,10000,100000)) +
+                     limits = c(1,3300000), breaks = c(10,100,1000,10000,100000)) +
   theme_minimal() +
   theme(legend.position = "top") +
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
