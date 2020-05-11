@@ -17,7 +17,8 @@ setparsvars <- function(est_these_pars, est_these_inivals, tint, n_knots)
                 "H1", "H2", "H3", "H4",
                 "C_new", "H_new", "D_new",
                 "R",
-                "D")
+                "D",
+                "trendO")
   
   #initial conditions are also considered parameters and some are estimated
   #we supply them on a log scale and in the code exponentiate to ensure no negative values
@@ -29,7 +30,8 @@ setparsvars <- function(est_these_pars, est_these_inivals, tint, n_knots)
                C1_0 = 2, #C2_0 = 2, C3_0 = 2, C4_0 = 2, 
                H1_0 = 2, #H2_0 = 2, H3_0 = 2, H4_0 = 2, 
                R_0 = 0,
-               D_0 = 0
+               D_0 = 0,
+               trendO_0 = 100
   )
   
   inivalsraw <- c(S_0 = 10600000, 
@@ -90,7 +92,7 @@ setparsvars <- function(est_these_pars, est_these_inivals, tint, n_knots)
                log_sigma_dw = log(0.1)
   )
   
-  knot_coefs <- rep(10, n_knots)
+  knot_coefs <- rep(0, n_knots)
   names(knot_coefs) <- paste0("b", 1:n_knots)
   parvals = c(parvals, knot_coefs) 
   

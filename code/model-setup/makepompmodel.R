@@ -60,7 +60,12 @@ makepompmodel <- function(par_var_list, pomp_data, covar_table, n_knots)
     //foi = rel_beta_change*( pow( ( 1/(1+exp(-5.65)) ), t ) ) * (exp(log_beta_s)*(Isd_tot + Isu_tot + 1/(1+exp(trans_e))*E_tot + 1/(1+exp(trans_a))*Ia_tot + 1/(1+exp(trans_c))*C_tot+ 1/(1+exp(trans_h))*H_tot));
     //foi = rel_beta_change * (exp(log_beta_s)*(Isd_tot + Isu_tot + 1/(1+exp(trans_e))*E_tot + 1/(1+exp(trans_a))*Ia_tot + 1/(1+exp(trans_c))*C_tot+ 1/(1+exp(trans_h))*H_tot));
     
-    trend = dot_product(K, &b1, &seas_1);
+    if(fit == 1) {
+      trend = dot_product(K, &b1, &seas_1);
+    }
+    if(fit == 0) {
+      trend = trend_sim;
+    }
     beta = rel_beta_change * exp(log_beta_s) * (exp(trend) / (1+exp(trend)));
     foi = beta * (Isd_tot + Isu_tot + 1/(1+exp(trans_e))*E_tot + 1/(1+exp(trans_a))*Ia_tot + 1/(1+exp(trans_c))*C_tot+ 1/(1+exp(trans_h))*H_tot);
     
@@ -205,6 +210,8 @@ makepompmodel <- function(par_var_list, pomp_data, covar_table, n_knots)
     R += trans[11] + trans[15] + trans[24] + trans[29];
     D += trans[28];
     D_new += trans[28];  // new deaths tracker, reset at obs times
+    
+    trendO = trend;
     "
   )
   
@@ -249,6 +256,7 @@ makepompmodel <- function(par_var_list, pomp_data, covar_table, n_knots)
     R = nearbyint(R_0);
     D = nearbyint(D_0);
     D_new = nearbyint(D_0);
+    trendO = 100;
     "
   )
   
@@ -349,7 +357,6 @@ makepompmodel <- function(par_var_list, pomp_data, covar_table, n_knots)
     data = dat_for_pomp, 
     times = "time",
     t0 = 1,  # set first sim time to first observation time
-    # covar = covariate_table(covar_table, times = "time", order = "constant"),
     covar = covar, 
     dmeasure = dmeas,
     rmeasure = rmeas,

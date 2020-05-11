@@ -75,8 +75,8 @@ est_these_pars = c("log_beta_s",
                    "log_sigma_dw",
                    "log_theta_cases", "log_theta_hosps", "log_theta_deaths")
 n_knots <- round(nrow(pomp_data) / 7)
-# knot_coefs <-  paste0("b", 1:n_knots)
-# est_these_pars <- c(est_these_pars, knot_coefs)
+knot_coefs <-  paste0("b", 1:n_knots)
+est_these_pars <- c(est_these_pars, knot_coefs)
 
 # Initial conditions
 # est_these_inivals = c("E1_0", "Ia1_0", "Isu1_0", "Isd1_0")
@@ -128,6 +128,8 @@ covar = covariate_table(
     degree=3
   ),
   rel_beta_change = as.matrix(covar_table$rel_beta_change),
+  trend_sim = as.matrix(rep(100, times = nrow(covar_table))),
+  fit = 1,
   times="t",
   order = "constant"
 )
@@ -160,17 +162,17 @@ pomp_model <- makepompmodel(par_var_list = par_var_list,
 parallel_info = list()
 parallel_info$parallel_run <- TRUE
 # parallel_info$num_cores <- parallel::detectCores() - 2  # alter as needed
-parallel_info$num_cores <- 30  # on HPC
+parallel_info$num_cores <- 3  # on HPC
 
 # specify settings for mif2 procedure
 # two rounds of MIF
 # these 2 rounds are currently hard-coded into runmif
 mif_settings = list()
-mif_settings$mif_num_particles  <- c(2000, 2000)
-mif_settings$mif_num_iterations <- c(150, 150)
+mif_settings$mif_num_particles  <- c(200, 200)
+mif_settings$mif_num_iterations <- c(15, 15)
 mif_settings$mif_cooling_fracs <- c(0.9, 0.7)
-mif_settings$pf_num_particles <- 5000
-mif_settings$pf_reps <- 10
+mif_settings$pf_num_particles <- 200
+mif_settings$pf_reps <- 2
 
 # source the mif function
 source(here("code/model-fitting/runmif.R"))
@@ -213,54 +215,54 @@ filename_mif <- here('output', paste0(filename_label, '_mif.rds'))
 saveRDS(object = mif_res, file = filename_mif)
 
 
-# Simulate mode to test
-mifs <- mif_res$mif_runs
-pfs <- mif_res$pf_runs
-pomp_model <- mif_res$pomp_model
-
-n_ini_cond = length(pfs)
-ll = list()
-for (i in 1:n_ini_cond) {
-  ll1 <- sapply(pfs[[i]], logLik)
-  ll[[i]] <- logmeanexp(ll1, se = TRUE)
-}
-
-# get estimated values for all parameters that were estimated for each run 
-mif_coefs <- data.frame(matrix(unlist(sapply(mifs, coef)), 
-                               nrow = length(mifs), 
-                               byrow = T))
-colnames(mif_coefs) <- names(coef(mifs[[1]]))  # names are the same for all mifs
-
-# convert the list containing the log likelihoods for 
-# each run stored in ll into a data frame
-ll_df <- data.frame(matrix(unlist(ll), nrow=n_ini_cond, byrow=T))
-
-# combine the ll_df and mif_coefs data frames. 
-# Also do some cleaning/renaming
-pf_logliks <- ll_df %>%
-  dplyr::rename("LogLik" = X1,
-                "LogLik_SE" = X2) %>%
-  dplyr::mutate(MIF_ID = 1:n()) %>%
-  dplyr::select(MIF_ID, LogLik, LogLik_SE) %>%
-  bind_cols(mif_coefs) %>%
-  dplyr::arrange(-LogLik)
-
-all_mles <- pf_logliks %>%
-  filter(LogLik > (max(LogLik)-2)) %>%
-  dplyr::select(-MIF_ID, -LogLik, -LogLik_SE)
-
-sims <- matrix(NA, nrow = nrow(pomp_data), ncol = nrow(all_mles))
-for(i in 1:nrow(all_mles)) {
-  simsraw <- simulate(mif_res$pomp_model, nsim = 100, format = "data.frame", params = all_mles[i,])
-  simsout <- simsraw %>%
-    group_by(time) %>%
-    summarise(cases = mean(cases))
-  sims[,i] <- simsout$cases
-}
-matplot(sims, type = "l")
-lines(rowMeans(sims), lwd = 5)
-# plot(sims$cases, type  ='l', ylim = c(0,2000))
-points(pomp_data$cases, pch = 19)
+# # Simulate mode to test
+# mifs <- mif_res$mif_runs
+# pfs <- mif_res$pf_runs
+# pomp_model <- mif_res$pomp_model
+# 
+# n_ini_cond = length(pfs)
+# ll = list()
+# for (i in 1:n_ini_cond) {
+#   ll1 <- sapply(pfs[[i]], logLik)
+#   ll[[i]] <- logmeanexp(ll1, se = TRUE)
+# }
+# 
+# # get estimated values for all parameters that were estimated for each run 
+# mif_coefs <- data.frame(matrix(unlist(sapply(mifs, coef)), 
+#                                nrow = length(mifs), 
+#                                byrow = T))
+# colnames(mif_coefs) <- names(coef(mifs[[1]]))  # names are the same for all mifs
+# 
+# # convert the list containing the log likelihoods for 
+# # each run stored in ll into a data frame
+# ll_df <- data.frame(matrix(unlist(ll), nrow=n_ini_cond, byrow=T))
+# 
+# # combine the ll_df and mif_coefs data frames. 
+# # Also do some cleaning/renaming
+# pf_logliks <- ll_df %>%
+#   dplyr::rename("LogLik" = X1,
+#                 "LogLik_SE" = X2) %>%
+#   dplyr::mutate(MIF_ID = 1:n()) %>%
+#   dplyr::select(MIF_ID, LogLik, LogLik_SE) %>%
+#   bind_cols(mif_coefs) %>%
+#   dplyr::arrange(-LogLik)
+# 
+# all_mles <- pf_logliks %>%
+#   filter(LogLik > (max(LogLik)-2)) %>%
+#   dplyr::select(-MIF_ID, -LogLik, -LogLik_SE)
+# 
+# sims <- matrix(NA, nrow = nrow(pomp_data), ncol = nrow(all_mles))
+# for(i in 1:nrow(all_mles)) {
+#   simsraw <- simulate(mif_res$pomp_model, nsim = 100, format = "data.frame", params = all_mles[i,])
+#   simsout <- simsraw %>%
+#     group_by(time) %>%
+#     summarise(cases = mean(cases))
+#   sims[,i] <- simsout$cases
+# }
+# matplot(sims, type = "l")
+# lines(rowMeans(sims), lwd = 5)
+# # plot(sims$cases, type  ='l', ylim = c(0,2000))
+# points(pomp_data$cases, pch = 19)
 
 # Simulate the model to predict -----------------------------------------------------
 
@@ -268,7 +270,7 @@ points(pomp_data$cases, pch = 19)
 # source(here("code/forward-simulations/simulate_trajectories.R"))
 # 
 # # Source the script run the scenarios -- saves a file this time
-# source(here("code/forward-simulations/run-scenarios.R"))
+source(here("code/forward-simulations/run-scenarios.R"))
 
 
 # Make the plots for the website ------------------------------------------

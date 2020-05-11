@@ -121,18 +121,21 @@ simulate_trajectories <- function(
                 Isd1_0=log(Isd1),
                 C1_0 = C1, 
                 H1_0 = H1,
-                R_0=R, D_0 = D)
+                R_0=R,
+                D_0 = D,
+                trendO_0 = trendO)
     
     param_vals[which(names(param_vals) %in% names(inits))] <- inits
     
     
     # Update pomp covariate table
     if(covar_action == "status_quo") {
-      covars <- pomp_model@covar@table
-      covars <- c(covars, rep(as.numeric(tail(t(covars), 1)), times = horizon))
+      covars <- pomp_model@covar@table[1,]
+      covars <- c(covars, rep(as.numeric(tail(covars, 1)), times = horizon))
       covars <- as.data.frame(covars) %>%
         mutate(time = 1:n()) %>%
         rename("rel_beta_change" = covars)
+      trend_sim <- inits$trendO_0
     }
     
     if(covar_action == "more_sd") {
@@ -146,6 +149,7 @@ simulate_trajectories <- function(
       covars <- as.data.frame(covars) %>%
         mutate(time = 1:n()) %>%
         rename("rel_beta_change" = covars)
+      trend_sim <- inits$trendO_0
     }
     
     if(covar_action == "less_sd") {
@@ -158,11 +162,12 @@ simulate_trajectories <- function(
       covars <- as.data.frame(covars) %>%
         mutate(time = 1:n()) %>%
         rename("rel_beta_change" = covars)
+      trend_sim <- inits$trendO_0
     }
     
     if(covar_action == "normal") {
-      covars <- pomp_model@covar@table
-      lastval <- as.numeric(tail(t(covars), 1))
+      covars <- pomp_model@covar@table[1,]
+      lastval <- as.numeric(tail(covars, 1))
       maxval <- 1
       inc <- seq(lastval, maxval, length.out = 7)
       final <- rep(maxval, times = (horizon - length(inc)))
@@ -170,6 +175,8 @@ simulate_trajectories <- function(
       covars <- as.data.frame(covars) %>%
         mutate(time = 1:n()) %>%
         rename("rel_beta_change" = covars)
+      trend_inc <- seq(inits$trendO_0, 100, length.out = 7)
+      trend_sim <- c(inits$trendO_0, trend_inc, rep(100, times = (horizon - length(trend_inc))))
     }
     
     
@@ -180,12 +187,29 @@ simulate_trajectories <- function(
     timezero(M2) <- max(time(pomp_model))
     newcovars <- covars %>%
       tail(horizon+1)
-    M2@covar <- covariate_table(newcovars, times = "time", order = "constant")
+    covar = covariate_table(
+      t = c(timezero(M2), time(M2)),
+      seas = bspline.basis(
+        x=t,
+        nbasis=n_knots,
+        degree=3
+      ),
+      rel_beta_change = as.matrix(newcovars$rel_beta_change),
+      trend_sim = as.matrix(trend_sim),
+      fit = 0,
+      times="t",
+      order = "constant"
+    )
+    
+    # Update the globals string to indicate this is a 
+    # simulation run with a set trend_sim covariate, as
+    # specified.
+    M2@covar <- covar
     
     # Run the simulations
     sim_out <- pomp::simulate(M2, 
                               params = param_vals,
-                              nsim = nsims, 
+                              nsim = 1, 
                               format="data.frame")
     
     # pomp runs with internal time units, add real time to results

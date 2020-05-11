@@ -42,7 +42,8 @@ pf_logliks <- ll_df %>%
   dplyr::arrange(-LogLik)
 
 all_mles <- pf_logliks %>%
-  filter(LogLik > (max(LogLik)-2)) %>%
+  # filter(LogLik > (max(LogLik)-2)) %>%
+  slice(1) %>%
   dplyr::select(-MIF_ID, -LogLik, -LogLik_SE)
 
 # Make sure there are some decent MLEs, i.e., not -inf
@@ -54,7 +55,8 @@ for(i in 1:nrow(all_mles)) {
                       params = all_mles[i, ],
                       nsim = 100,
                       format="data.frame") %>%
-    mutate(mle_id = i)
+    mutate(mle_id = i) %>%
+    mutate(.id = as.character(.id))
   obs_sim <- bind_rows(obs_sim, sim)
 }
 
@@ -65,7 +67,8 @@ obs_sim2 <- simulate(pomp_model,
                     include.data = TRUE)
 obs_sim2 <- obs_sim2 %>%
   filter(.id == "data") %>% 
-  mutate(mle_id = 999)
+  mutate(mle_id = 999) %>%
+  mutate(.id = as.character(.id))
 
 obs_sim <- bind_rows(obs_sim, obs_sim2)
 

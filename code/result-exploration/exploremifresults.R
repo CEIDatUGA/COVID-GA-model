@@ -157,7 +157,8 @@ exploremifresults <- function(mif_res, n_knots)
                    rep("lin", n_knots),  # beta spline coefficients
                    "lin", #S0 
                    "log", "log", "log","log", #E/Ia/Isu/Isd
-                   "lin", "lin", "lin", "lin" #C/H/R/D
+                   "lin", "lin", "lin", "lin", #C/H/R/D
+                   "lin" #trendO
                    )
   
   # do this for all parameters, even fixed ones
@@ -169,6 +170,8 @@ exploremifresults <- function(mif_res, n_knots)
   
   coef_natural_df <- transform_params(coef_all, param_trans)
   
+  spline_names <- allparnames[grep("b", allparnames)[-1]]
+  
   # also give some parameters new names to avoid confusion
   param_nat_names <- c("beta_s", 
                        "frac_trans_e", "frac_trans_a", "frac_trans_c", "frac_trans_h", 
@@ -178,9 +181,11 @@ exploremifresults <- function(mif_res, n_knots)
                        "frac_asym", "frac_hosp", "frac_dead", 
                       "theta_cases", "theta_hosps", "theta_deaths", 
                       "sigma_dw", 
+                      spline_names,
                       "S_0",
                       "E1_0", "Ia1_0", "Isu1_0", "Isd1_0",
-                      "C1_0","H1_0","R_0","D_0")
+                      "C1_0","H1_0","R_0","D_0",
+                      "trendO_0")
   
   colnames(coef_natural_df) <- param_nat_names
   
