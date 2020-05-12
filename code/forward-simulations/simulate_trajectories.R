@@ -16,12 +16,26 @@ simulate_trajectories <- function(
 
   if(covar_action == "no_intervention") {
     covars <- pomp_model@covar@table
-    # maxval <- 1
-    covars <- c(covars, rep(as.numeric(tail(t(covars), 1)), times = horizon))
+    covars <- c(covars[1,], rep(as.numeric(tail(covars[1,], 1)), times = horizon))
     covars <- as.data.frame(covars) %>%
       mutate(time = 1:n()) %>%
       rename("rel_beta_change" = covars)
     covars$rel_beta_change <- covar_no_action
+    covars$trend_sim <- 100  # this equals 1 after logistic transform
+    
+    covar = covariate_table(
+      t = covars$time,
+      seas = bspline.basis(
+        x=t,
+        nbasis=n_knots,
+        degree=3
+      ),
+      rel_beta_change = as.matrix(covars$rel_beta_change),
+      trend_sim = as.matrix(covars$trend_sim),
+      fit = 0,
+      times="t",
+      order = "constant"
+    )
     
     
     # Update the pomp model with new covariates
@@ -29,9 +43,7 @@ simulate_trajectories <- function(
     M2 <- pomp(
       pomp_model,
       time = newtimes, # update time of pomp object 
-      covar = covariate_table(covars, 
-                              times = "time",
-                              order = "constant") # update covariate
+      covar = covar
     )
     
     # Run the simulations
@@ -53,12 +65,14 @@ simulate_trajectories <- function(
     
   } else if(covar_action == "lowest_sd") {
     covars <- pomp_model@covar@table
-    minval <- min(covars)
-    id <- which.min(covars)
+    minval <- min(covars["rel_beta_change", ])
+    id <- which.min(covars["rel_beta_change", ])
     news <- seq(minval, 0.3, length.out = 7)
-    covars[id:(id+7-1)] <- news
-    covars[(id+7):length(covars)] <- 0.3
-    covars <- c(covars, rep(0.3, times = horizon))
+    sdv <- covars["rel_beta_change", ]
+    sdv[id:(id+7-1)] <- news
+    sdv[(id+7):length(sdv)] <- 0.3
+    sdv <- c(sdv, rep(0.3, times = horizon))
+    
     covars <- as.data.frame(covars) %>%
       mutate(time = 1:n()) %>%
       rename("rel_beta_change" = covars)
@@ -109,6 +123,11 @@ simulate_trajectories <- function(
       filter(totdif == min(totdif)) %>%
       dplyr::select(.id, mle_id)
     
+    trend <- obs_sim %>%
+      filter(mle_id == init_id$mle_id) %>%
+      filter(.id == init_id$.id) %>%
+      pull(trendO)
+    
     inits <- obs_sim %>%
       filter(mle_id == init_id$mle_id) %>%
       filter(.id == init_id$.id) %>%
@@ -130,17 +149,17 @@ simulate_trajectories <- function(
     
     # Update pomp covariate table
     if(covar_action == "status_quo") {
-      covars <- pomp_model@covar@table[1,]
+      covars <- pomp_model@covar@table["rel_beta_change", ]
       covars <- c(covars, rep(as.numeric(tail(covars, 1)), times = horizon))
       covars <- as.data.frame(covars) %>%
         mutate(time = 1:n()) %>%
         rename("rel_beta_change" = covars)
-      trend_sim <- inits$trendO_0
+      trend_sim <- rep(inits$trendO_0, nrow(covars))
     }
     
     if(covar_action == "more_sd") {
-      covars <- pomp_model@covar@table
-      lastval <- as.numeric(tail(t(covars), 1))
+      covars <- pomp_model@covar@table["rel_beta_change", ]
+      lastval <- as.numeric(tail(covars, 1))
       # minval <- min(covars)
       minval <- 0.3  # max observed in NY
       dec <- seq(lastval, minval, length.out = 7)
@@ -149,12 +168,12 @@ simulate_trajectories <- function(
       covars <- as.data.frame(covars) %>%
         mutate(time = 1:n()) %>%
         rename("rel_beta_change" = covars)
-      trend_sim <- inits$trendO_0
+      trend_sim <- rep(inits$trendO_0, nrow(covars))
     }
     
     if(covar_action == "less_sd") {
-      covars <- pomp_model@covar@table
-      lastval <- as.numeric(tail(t(covars), 1))
+      covars <- pomp_model@covar@table["rel_beta_change", ]
+      lastval <- as.numeric(tail(covars, 1))
       maxval <- 0.8
       inc <- seq(lastval, maxval, length.out = 7)
       final <- rep(maxval, times = (horizon - length(inc)))
@@ -162,7 +181,7 @@ simulate_trajectories <- function(
       covars <- as.data.frame(covars) %>%
         mutate(time = 1:n()) %>%
         rename("rel_beta_change" = covars)
-      trend_sim <- inits$trendO_0
+      trend_sim <- rep(inits$trendO_0, nrow(covars))
     }
     
     if(covar_action == "normal") {
@@ -180,12 +199,13 @@ simulate_trajectories <- function(
     }
     
     
-    
     # Update the pomp model with new covariates
     M2 <- pomp_model
     time(M2) <- max(time(pomp_model))+seq_len(horizon)
     timezero(M2) <- max(time(pomp_model))
     newcovars <- covars %>%
+      tail(horizon+1)
+    newtrend <- trend_sim %>%
       tail(horizon+1)
     covar = covariate_table(
       t = c(timezero(M2), time(M2)),
@@ -195,7 +215,7 @@ simulate_trajectories <- function(
         degree=3
       ),
       rel_beta_change = as.matrix(newcovars$rel_beta_change),
-      trend_sim = as.matrix(trend_sim),
+      trend_sim = as.matrix(newtrend),
       fit = 0,
       times="t",
       order = "constant"
