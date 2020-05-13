@@ -72,7 +72,7 @@ cumulative_summs <- out_sims %>%
   filter(Date == max(Date)) %>%
   mutate(SimType2 = ifelse(SimType == "linear_decrease_sd", "3Relax social distancing", SimType),
          SimType2 = ifelse(SimType == "no_intervention", "6No intervention", SimType2),
-         SimType2 = ifelse(SimType == "lowest_sd", "5Continuously improving social distancing", SimType2),
+         # SimType2 = ifelse(SimType == "lowest_sd", "5Continuously improving social distancing", SimType2),
          SimType2 = ifelse(SimType == "status_quo", "2Status quo", SimType2),
          SimType2 = ifelse(SimType == "linear_increase_sd", "1Increased social distancing", SimType2),
          SimType2 = ifelse(SimType == "return_normal", "4Return to normal", SimType2)) %>%
@@ -186,7 +186,7 @@ plot_fits <- function() {
 all_summs <- sim_summs %>%
   mutate(SimType2 = ifelse(SimType == "linear_decrease_sd", "3Relax social distancing", SimType),
          SimType2 = ifelse(SimType == "no_intervention", "6No intervention", SimType2),
-         SimType2 = ifelse(SimType == "lowest_sd", "5Continuously improving social distancing", SimType2),
+         # SimType2 = ifelse(SimType == "lowest_sd", "5Continuously improving social distancing", SimType2),
          SimType2 = ifelse(SimType == "status_quo", "2Status quo", SimType2),
          SimType2 = ifelse(SimType == "linear_increase_sd", "1Increased social distancing", SimType2),
          SimType2 = ifelse(SimType == "return_normal", "4Return to normal", SimType2)) %>%
@@ -198,7 +198,7 @@ scen_labs <- c("1. Increase social distancing",
                "2. Maintain social distancing (status quo)",
                "3. Relax social distancing",
                "4. Return to normal",
-               "5. What if social distancing had continued to increase?",
+               # "5. What if social distancing had continued to increase?",
                "6. What if social distancing had never begun?")
 
 # OVERVIEW FIGURE
@@ -218,7 +218,7 @@ cum_summs_traj <- out_sims %>%
   ungroup() %>%
   mutate(SimType2 = ifelse(SimType == "linear_decrease_sd", "3Relax social distancing", SimType),
          SimType2 = ifelse(SimType == "no_intervention", "6No intervention", SimType2),
-         SimType2 = ifelse(SimType == "lowest_sd", "5Continuously improving social distancing", SimType2),
+         # SimType2 = ifelse(SimType == "lowest_sd", "5Continuously improving social distancing", SimType2),
          SimType2 = ifelse(SimType == "status_quo", "2Status quo", SimType2),
          SimType2 = ifelse(SimType == "linear_increase_sd", "1Increased social distancing", SimType2),
          SimType2 = ifelse(SimType == "return_normal", "4Return to normal", SimType2)) %>%
@@ -240,8 +240,8 @@ cum_summs_traj <- out_sims %>%
 ## alt line subplot
 # geom_line(data = df[3:4,], aes(x = x, y = y), color = 'blue', size = 3)
 lp <- ggplot(cum_summs_traj, aes(x = Date, y = Cases)) +
-  geom_line(data = filter(cum_summs_traj, SimType == '5Continuously improving social distancing'),
-            color = mycols['blue'], size = 1, linetype = 2) +
+  # geom_line(data = filter(cum_summs_traj, SimType == '5Continuously improving social distancing'),
+  #           color = mycols['blue'], size = 1, linetype = 2) +
   geom_line(data = filter(cum_summs_traj, SimType == '6No intervention'),
             color = mycols['purple'], size = 1, linetype = 2) +
   geom_line(data = filter(cum_summs_traj, SimType == '1Increased social distancing'),
@@ -303,7 +303,7 @@ covar_scensp <- covar_scens %>%
   left_join(dates_df, by = "time") %>%
   mutate(SimType2 = ifelse(SimType == "linear_decrease_sd", "3Relax social distancing", SimType),
          SimType2 = ifelse(SimType == "no_intervention", "6No intervention", SimType2),
-         SimType2 = ifelse(SimType == "lowest_sd", "5Continuously improving social distancing", SimType2),
+         # SimType2 = ifelse(SimType == "lowest_sd", "5Continuously improving social distancing", SimType2),
          SimType2 = ifelse(SimType == "status_quo", "2Status quo", SimType2),
          SimType2 = ifelse(SimType == "linear_increase_sd", "1Increased social distancing", SimType2),
          SimType2 = ifelse(SimType == "return_normal", "4Return to normal", SimType2)) %>%
@@ -328,8 +328,8 @@ covar_scensp <- covar_scensp %>% rename(Movement = rel_beta_change)
 
 cp <- ggplot(covar_scensp,
              aes(x = Date, y = Movement, text = )) +
-  geom_line(data = filter(covar_scensp, SimType == '5Continuously improving social distancing'),
-            color = mycols['blue'], size = 1, linetype = 2) +
+  # geom_line(data = filter(covar_scensp, SimType == '5Continuously improving social distancing'),
+  #           color = mycols['blue'], size = 1, linetype = 2) +
   geom_line(data = filter(covar_scensp, SimType == '6No intervention'),
             color = mycols['purple'], size = 1, linetype = 2) +
   geom_line(data = filter(covar_scensp, SimType == '1Increased social distancing'),
@@ -472,7 +472,7 @@ scen_labs <- c("1Increased social distancing" = "1. Increase\nsocial distancing"
                "2Status quo" = "2. Maintain\nsocial distancing\n(status quo)",
                "3Relax social distancing" = "3. Relax\nsocial distancing",
                "4Return to normal" = "4. Return to normal",
-               "5Continuously improving social distancing" = "5. What if\nsocial distancing had\ncontinued to increase?",
+               # "5Continuously improving social distancing" = "5. What if\nsocial distancing had\ncontinued to increase?",
                "6No intervention" = "6. What if\nsocial distancing had\nnever begun?")
 
 ## NATURAL SCALE
@@ -488,7 +488,7 @@ infection_summaries <- out_sims %>%
   ungroup() %>%
   mutate(SimType2 = ifelse(SimType == "linear_decrease_sd", "3Relax social distancing", SimType),
          SimType2 = ifelse(SimType == "no_intervention", "6No intervention", SimType2),
-         SimType2 = ifelse(SimType == "lowest_sd", "5Continuously improving social distancing", SimType2),
+         # SimType2 = ifelse(SimType == "lowest_sd", "5Continuously improving social distancing", SimType2),
          SimType2 = ifelse(SimType == "status_quo", "2Status quo", SimType2),
          SimType2 = ifelse(SimType == "linear_increase_sd", "1Increased social distancing", SimType2),
          SimType2 = ifelse(SimType == "return_normal", "4Return to normal", SimType2)) %>%
@@ -698,97 +698,97 @@ ggsave(paste0(fig_outpath, "/deaths-trajs-log.png"),
 
 # Stats for press release -------------------------------------------------
 
-
-pomp_data %>%
-  arrange(Date) %>%
-  group_by(Variable) %>%
-  mutate(Value = ifelse(is.na(Value), 0, Value)) %>%
-  mutate(cum_sum = cumsum(Value)) %>%
-  ungroup() %>%
-  filter(Period == "APast") %>%
-  filter(Date == max(Date)) %>%
-  dplyr::select(-Value) %>%
-  spread(Variable, cum_sum) -> sdist
-
-sim_summs %>%
-  filter(SimType == "no_intervention") %>%
-  dplyr::select(-lower, -upper) %>%
-  arrange(Date) %>%
-  group_by(Variable) %>%
-  mutate(cum_sum = cumsum(ptvalue)) %>%
-  ungroup() %>%
-  filter(Period == "Past") %>%
-  filter(Date == max(Date)) %>%
-  dplyr::select(-ptvalue) %>%
-  spread(Variable, cum_sum) -> noint
-
- 1 - (sdist$Acases / noint$Acases)
-noint$Cdeaths - sdist$Cdeaths
-
-
-cumulative_summs %>%
-  filter(SimType == "3Relax social distancing") %>%
-  dplyr::select(-min, -max) %>%
-  spread(Variable, ptvalue) -> relax
-
-cumulative_summs %>%
-  filter(SimType == "2Status quo") %>%
-  dplyr::select(-min, -max) %>%
-  spread(Variable, ptvalue) -> sq
-
-relax$Acases-sq$Acases-sdist$Acases
-relax$Cdeaths-sq$Cdeaths-sdist$Cdeaths
-
-cumulative_summs %>%
-  filter(SimType == "6No intervention") %>%
-  dplyr::select(-min, -max) %>%
-  spread(Variable, ptvalue) -> noi
-
-cumulative_summs %>%
-  filter(SimType == "1Increased social distancing") %>%
-  dplyr::select(-min, -max) %>%
-  spread(Variable, ptvalue) -> good
-
-cumulative_summs %>%
-  filter(SimType == "4Return to normal") %>%
-  dplyr::select(-min, -max) %>%
-  spread(Variable, ptvalue) -> normal
-
-noint$Acases - sdist$Acases
-noint$Cdeaths - sdist$Cdeaths
-# noi$Acases-sq$Acases
-# noi$Cdeaths-sq$Cdeaths
-relax$Acases/sq$Acases
-relax$Acases/good$Acases
-relax$Cdeaths/sq$Cdeaths
-relax$Cdeaths/good$Cdeaths
-
-
-cumulative_summs2 <- out_sims %>%
-  dplyr::select(SimType, Date, cases, hosps, deaths, rep_id) %>%
-  rename("Acases" = cases,
-         "Bhosps" = hosps,
-         "Cdeaths" = deaths) %>%
-  gather(key = "Variable", value = "Value", -SimType, -Date, -rep_id) %>%
-  arrange(SimType, Variable, rep_id, Date) %>%
-  group_by(SimType, Variable, rep_id) %>%
-  filter(Date >= "2020-05-26") %>%
-  group_by(SimType, Variable, rep_id) %>%
-  mutate(Value = cumsum(Value)) %>%
-  group_by(SimType, Variable, Date) %>%
-  summarise(min = quantile(Value, 0.1),
-            ptvalue = ceiling(quantile(Value, 0.5)),
-            max = quantile(Value, 0.9)) %>%
-  ungroup() %>%
-  mutate(SimType2 = ifelse(SimType == "linear_decrease_sd", "3Relax social distancing", SimType),
-         SimType2 = ifelse(SimType == "no_intervention", "6No intervention", SimType2),
-         SimType2 = ifelse(SimType == "lowest_sd", "5Continuously improving social distancing", SimType2),
-         SimType2 = ifelse(SimType == "status_quo", "2Status quo", SimType2),
-         SimType2 = ifelse(SimType == "linear_increase_sd", "1Increased social distancing", SimType2),
-         SimType2 = ifelse(SimType == "return_normal", "4Return to normal", SimType2)) %>%
-  mutate(SimType = SimType2) %>%
-  dplyr::select(-SimType2) %>%
-  filter(Date == min(Date) | Date == max(Date))
-
-cumulative_summs2 %>% filter(SimType == "2Status quo")
-cumulative_summs2 %>% filter(SimType == "6No intervention")
+# 
+# pomp_data %>%
+#   arrange(Date) %>%
+#   group_by(Variable) %>%
+#   mutate(Value = ifelse(is.na(Value), 0, Value)) %>%
+#   mutate(cum_sum = cumsum(Value)) %>%
+#   ungroup() %>%
+#   filter(Period == "APast") %>%
+#   filter(Date == max(Date)) %>%
+#   dplyr::select(-Value) %>%
+#   spread(Variable, cum_sum) -> sdist
+# 
+# sim_summs %>%
+#   filter(SimType == "no_intervention") %>%
+#   dplyr::select(-lower, -upper) %>%
+#   arrange(Date) %>%
+#   group_by(Variable) %>%
+#   mutate(cum_sum = cumsum(ptvalue)) %>%
+#   ungroup() %>%
+#   filter(Period == "Past") %>%
+#   filter(Date == max(Date)) %>%
+#   dplyr::select(-ptvalue) %>%
+#   spread(Variable, cum_sum) -> noint
+# 
+#  1 - (sdist$Acases / noint$Acases)
+# noint$Cdeaths - sdist$Cdeaths
+# 
+# 
+# cumulative_summs %>%
+#   filter(SimType == "3Relax social distancing") %>%
+#   dplyr::select(-min, -max) %>%
+#   spread(Variable, ptvalue) -> relax
+# 
+# cumulative_summs %>%
+#   filter(SimType == "2Status quo") %>%
+#   dplyr::select(-min, -max) %>%
+#   spread(Variable, ptvalue) -> sq
+# 
+# relax$Acases-sq$Acases-sdist$Acases
+# relax$Cdeaths-sq$Cdeaths-sdist$Cdeaths
+# 
+# cumulative_summs %>%
+#   filter(SimType == "6No intervention") %>%
+#   dplyr::select(-min, -max) %>%
+#   spread(Variable, ptvalue) -> noi
+# 
+# cumulative_summs %>%
+#   filter(SimType == "1Increased social distancing") %>%
+#   dplyr::select(-min, -max) %>%
+#   spread(Variable, ptvalue) -> good
+# 
+# cumulative_summs %>%
+#   filter(SimType == "4Return to normal") %>%
+#   dplyr::select(-min, -max) %>%
+#   spread(Variable, ptvalue) -> normal
+# 
+# noint$Acases - sdist$Acases
+# noint$Cdeaths - sdist$Cdeaths
+# # noi$Acases-sq$Acases
+# # noi$Cdeaths-sq$Cdeaths
+# relax$Acases/sq$Acases
+# relax$Acases/good$Acases
+# relax$Cdeaths/sq$Cdeaths
+# relax$Cdeaths/good$Cdeaths
+# 
+# 
+# cumulative_summs2 <- out_sims %>%
+#   dplyr::select(SimType, Date, cases, hosps, deaths, rep_id) %>%
+#   rename("Acases" = cases,
+#          "Bhosps" = hosps,
+#          "Cdeaths" = deaths) %>%
+#   gather(key = "Variable", value = "Value", -SimType, -Date, -rep_id) %>%
+#   arrange(SimType, Variable, rep_id, Date) %>%
+#   group_by(SimType, Variable, rep_id) %>%
+#   filter(Date >= "2020-05-26") %>%
+#   group_by(SimType, Variable, rep_id) %>%
+#   mutate(Value = cumsum(Value)) %>%
+#   group_by(SimType, Variable, Date) %>%
+#   summarise(min = quantile(Value, 0.1),
+#             ptvalue = ceiling(quantile(Value, 0.5)),
+#             max = quantile(Value, 0.9)) %>%
+#   ungroup() %>%
+#   mutate(SimType2 = ifelse(SimType == "linear_decrease_sd", "3Relax social distancing", SimType),
+#          SimType2 = ifelse(SimType == "no_intervention", "6No intervention", SimType2),
+#          SimType2 = ifelse(SimType == "lowest_sd", "5Continuously improving social distancing", SimType2),
+#          SimType2 = ifelse(SimType == "status_quo", "2Status quo", SimType2),
+#          SimType2 = ifelse(SimType == "linear_increase_sd", "1Increased social distancing", SimType2),
+#          SimType2 = ifelse(SimType == "return_normal", "4Return to normal", SimType2)) %>%
+#   mutate(SimType = SimType2) %>%
+#   dplyr::select(-SimType2) %>%
+#   filter(Date == min(Date) | Date == max(Date))
+# 
+# cumulative_summs2 %>% filter(SimType == "2Status quo")
+# cumulative_summs2 %>% filter(SimType == "6No intervention")
