@@ -252,6 +252,7 @@ cum_summs_traj <- cum_summs_traj %>% filter(SimType != "3Relax social distancing
 
 ## alt line subplot
 # geom_line(data = df[3:4,], aes(x = x, y = y), color = 'blue', size = 3)
+cases.ylim <- c(0,max(cumulative_summs$max))
 lp <- ggplot(cum_summs_traj, aes(x = Date, y = Cases)) +
   geom_line(data = filter(cum_summs_traj, SimType == '5Continuously improving social distancing'),
             color = mycols['blue'], size = 1, linetype = 2) +
@@ -267,13 +268,13 @@ lp <- ggplot(cum_summs_traj, aes(x = Date, y = Cases)) +
             color = mycols['red'], size = 1, linetype = 1) +
   geom_vline(aes(xintercept = as.numeric(foredate)), color = "grey35", linetype = 2) +
   ylab("Total number of\nconfirmed cases") +
-  scale_y_continuous(labels = scales::comma, limits = c(0, 4000000)) +
+  scale_y_continuous(labels = scales::comma, limits = cases.ylim) +
   theme_minimal()
 
 ### plotly
 plotly_lp <- lp %>% plotly::ggplotly() %>%
   layout(showlegend=FALSE,
-         yaxis = list(range = c(0,4000000)),
+         yaxis = list(range = cases.ylim),
          xaxis = list(showline = TRUE),
          annotations= list(yref = 'y', xref = "x", y = 750000, x = as.numeric(foredate),
                            text = format(foredate, format="%b %d"),
@@ -291,7 +292,7 @@ rp <- ggplot(cumulative_summs %>%
   scale_color_manual(values = mycols.vec.filt) +
   ylab("") +
   xlab("") +
-  scale_y_continuous(labels = scales::comma, limits = c(0, 4000000))+
+  scale_y_continuous(labels = scales::comma, limits = cases.ylim)+
   scale_x_discrete(labels = rep("", 6)) +
   theme_void() +
   guides(color = FALSE)
@@ -299,7 +300,7 @@ rp <- ggplot(cumulative_summs %>%
 ### plotly
 plotly_rp <- rp %>% plotly::ggplotly(tooltip='text') %>% 
   layout(showlegend=FALSE,
-         yaxis = list(range = c(0,4000000),
+         yaxis = list(range = cases.ylim,
                       showline = TRUE,
                       side = "right",
                       title = "Final range across\nmultiple simulations",
