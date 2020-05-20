@@ -118,10 +118,14 @@ fits <- sim_summs %>%
 fitreps <- out_sims %>%
   filter(SimType == "status_quo") %>%
   filter(Period == "Past") %>%
-  dplyr::select(mle_id, SimType, Date, cases, hosps, deaths) %>%
-  rename("Acases" = cases,
-         "Bhosps" = hosps,
-         "Cdeaths" = deaths) %>%
+  # dplyr::select(mle_id, SimType, Date, cases, hosps, deaths) %>%
+  # rename("Acases" = cases,
+  #        "Bhosps" = hosps,
+  #        "Cdeaths" = deaths) %>%
+  dplyr::select(mle_id, SimType, Date, C_new, H_new, D_new) %>%
+  rename("Acases" = C_new,
+         "Bhosps" = H_new,
+         "Cdeaths" = D_new) %>%
   gather(key = "Variable", value = "Value",-mle_id, -SimType, -Date) %>%
   group_by(Date, Variable, mle_id) %>%
   summarise(Value = ceiling(mean(Value))) %>%

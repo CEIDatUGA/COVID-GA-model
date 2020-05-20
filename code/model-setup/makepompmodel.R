@@ -292,11 +292,11 @@ makepompmodel <- function(par_var_list, pomp_data, covar_table, n_knots)
       d1 = dnbinom_mu(cases, theta1, C_new, 1); 
     }
     
-    if(ISNA(hosps)) {
-      d2 = 0;  // loglik is 0 if no observations
-    } else {
-      d2 = dnbinom_mu(hosps, theta2, H_new, 1);
-    }
+    //if(ISNA(hosps)) {
+      //d2 = 0;  // loglik is 0 if no observations
+    //} else {
+      //d2 = dnbinom_mu(hosps, theta2, H_new, 1);
+    //}
     
     if(ISNA(deaths)) {
       d3 = 0;  // loglik is 0 if no observations
@@ -304,7 +304,7 @@ makepompmodel <- function(par_var_list, pomp_data, covar_table, n_knots)
       d3 = dnbinom_mu(deaths, theta3, D_new, 1);
     }
     
-    lik = d1 + d2 + d3;  // sum the individual likelihoods
+    lik = d1 + d3;  // sum the individual likelihoods
     lik = (give_log) ? lik : exp(lik);  // return loglik or exp(lik)
     "
   )

@@ -85,7 +85,7 @@ pomp_data <- pomp_data %>%
 
 # Parameters
 est_these_pars = c("log_beta_s", 
-                   "frac_hosp", "frac_dead", 
+                   "frac_dead", 
                    "max_detect_par", 
                    "log_sigma_dw",
                    "log_theta_cases", "log_theta_hosps", "log_theta_deaths")
@@ -184,9 +184,9 @@ parallel_info$num_cores <- 30  # on HPC
 # these 2 rounds are currently hard-coded into runmif
 mif_settings = list()
 mif_settings$mif_num_particles  <- c(2000, 2000)
-mif_settings$mif_num_iterations <- c(150, 150)
+mif_settings$mif_num_iterations <- c(100, 100)
 mif_settings$mif_cooling_fracs <- c(0.9, 0.7)
-mif_settings$pf_num_particles <- 5000
+mif_settings$pf_num_particles <- 2000
 mif_settings$pf_reps <- 10
 
 # source the mif function
