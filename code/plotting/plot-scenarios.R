@@ -43,14 +43,18 @@ pomp_data <- all_mif$pomp_data %>%
 # Summarize the simulations -----------------------------------------------
 
 sim_summs <- out_sims %>%
-  dplyr::select(SimType, Period, Date, cases, hosps, deaths) %>%
-  rename("Acases" = cases,
-         "Bhosps" = hosps,
-         "Cdeaths" = deaths) %>%
+  dplyr::select(SimType, Period, Date, C_new, H_new, D_new) %>%
+  # rename("Acases" = cases,
+  #        "Bhosps" = hosps,
+  #        "Cdeaths" = deaths) %>%
+  rename("Acases" = C_new,
+         "Bhosps" = H_new,
+         "Cdeaths" = D_new) %>%
   gather(key = "Variable", value = "Value", -SimType, -Period, -Date) %>%
   group_by(SimType, Period, Date, Variable) %>%
   summarise(lower = ceiling(quantile(Value, 0.1)),
-            ptvalue = ceiling(mean(Value)),
+            # ptvalue = ceiling(mean(Value)),
+            ptvalue = median(Value),
             upper = ceiling(quantile(Value, 0.9))) %>%
   ungroup()
 
@@ -71,7 +75,7 @@ cumulative_summs <- out_sims %>%
   ungroup() %>%
   filter(Date == max(Date)) %>%
   mutate(SimType2 = ifelse(SimType == "linear_decrease_sd", "3Relax social distancing", SimType),
-         SimType2 = ifelse(SimType == "no_intervention", "6No intervention", SimType2),
+         #SimType2 = ifelse(SimType == "no_intervention", "6No intervention", SimType2),
          # SimType2 = ifelse(SimType == "lowest_sd", "5Continuously improving social distancing", SimType2),
          SimType2 = ifelse(SimType == "status_quo", "2Status quo", SimType2),
          SimType2 = ifelse(SimType == "linear_increase_sd", "1Increased social distancing", SimType2),
@@ -185,7 +189,7 @@ plot_fits <- function() {
 
 all_summs <- sim_summs %>%
   mutate(SimType2 = ifelse(SimType == "linear_decrease_sd", "3Relax social distancing", SimType),
-         SimType2 = ifelse(SimType == "no_intervention", "6No intervention", SimType2),
+         #SimType2 = ifelse(SimType == "no_intervention", "6No intervention", SimType2),
          # SimType2 = ifelse(SimType == "lowest_sd", "5Continuously improving social distancing", SimType2),
          SimType2 = ifelse(SimType == "status_quo", "2Status quo", SimType2),
          SimType2 = ifelse(SimType == "linear_increase_sd", "1Increased social distancing", SimType2),
@@ -197,9 +201,9 @@ all_summs <- sim_summs %>%
 scen_labs <- c("1. Increase social distancing",
                "2. Maintain social distancing (status quo)",
                "3. Relax social distancing",
-               "4. Return to normal",
+               "4. Return to normal")
                # "5. What if social distancing had continued to increase?",
-               "6. What if social distancing had never begun?")
+               #"6. What if social distancing had never begun?")
 
 # OVERVIEW FIGURE
 foredate <- all_summs %>%
@@ -217,7 +221,7 @@ cum_summs_traj <- out_sims %>%
   summarise(ptvalue = ceiling(mean(Value))) %>%
   ungroup() %>%
   mutate(SimType2 = ifelse(SimType == "linear_decrease_sd", "3Relax social distancing", SimType),
-         SimType2 = ifelse(SimType == "no_intervention", "6No intervention", SimType2),
+         #SimType2 = ifelse(SimType == "no_intervention", "6No intervention", SimType2),
          # SimType2 = ifelse(SimType == "lowest_sd", "5Continuously improving social distancing", SimType2),
          SimType2 = ifelse(SimType == "status_quo", "2Status quo", SimType2),
          SimType2 = ifelse(SimType == "linear_increase_sd", "1Increased social distancing", SimType2),
@@ -302,7 +306,7 @@ dates_df <- cum_summs_traj %>%
 covar_scensp <- covar_scens %>%
   left_join(dates_df, by = "time") %>%
   mutate(SimType2 = ifelse(SimType == "linear_decrease_sd", "3Relax social distancing", SimType),
-         SimType2 = ifelse(SimType == "no_intervention", "6No intervention", SimType2),
+         #SimType2 = ifelse(SimType == "no_intervention", "6No intervention", SimType2),
          # SimType2 = ifelse(SimType == "lowest_sd", "5Continuously improving social distancing", SimType2),
          SimType2 = ifelse(SimType == "status_quo", "2Status quo", SimType2),
          SimType2 = ifelse(SimType == "linear_increase_sd", "1Increased social distancing", SimType2),
@@ -471,9 +475,9 @@ ggsave(paste0(fig_outpath, "/all-projs-line-log.png"),
 scen_labs <- c("1Increased social distancing" = "1. Increase\nsocial distancing",
                "2Status quo" = "2. Maintain\nsocial distancing\n(status quo)",
                "3Relax social distancing" = "3. Relax\nsocial distancing",
-               "4Return to normal" = "4. Return to normal",
+               "4Return to normal" = "4. Return to normal")
                # "5Continuously improving social distancing" = "5. What if\nsocial distancing had\ncontinued to increase?",
-               "6No intervention" = "6. What if\nsocial distancing had\nnever begun?")
+               #"6No intervention" = "6. What if\nsocial distancing had\nnever begun?")
 
 ## NATURAL SCALE
 # Infections
@@ -487,7 +491,7 @@ infection_summaries <- out_sims %>%
             upper = ceiling(quantile(Infections, 0.9))) %>%
   ungroup() %>%
   mutate(SimType2 = ifelse(SimType == "linear_decrease_sd", "3Relax social distancing", SimType),
-         SimType2 = ifelse(SimType == "no_intervention", "6No intervention", SimType2),
+         #SimType2 = ifelse(SimType == "no_intervention", "6No intervention", SimType2),
          # SimType2 = ifelse(SimType == "lowest_sd", "5Continuously improving social distancing", SimType2),
          SimType2 = ifelse(SimType == "status_quo", "2Status quo", SimType2),
          SimType2 = ifelse(SimType == "linear_increase_sd", "1Increased social distancing", SimType2),
@@ -537,7 +541,7 @@ ggplot(all_summs %>%
   theme(legend.position = "top") +
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
   ggtitle("New daily cases") +
-  coord_cartesian(ylim = c(0, 30000)) -> pcasesnat
+  coord_cartesian(ylim = c(0, 10000)) -> pcasesnat
 ggsave(paste0(fig_outpath, "/cases-trajs-nat.png"),
        plot = pcasesnat,
        width = 8.5, height = 3,
@@ -589,7 +593,7 @@ ggplot(all_summs %>%
   theme(legend.position = "top") +
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
   ggtitle("New daily deaths") +
-  coord_cartesian(ylim = c(0, 6000)) -> pdeathsnat
+  coord_cartesian(ylim = c(0, 1000)) -> pdeathsnat
 ggsave(paste0(fig_outpath, "/deaths-trajs-nat.png"),
        plot = pdeathsnat,
        width = 8.5, height = 3,

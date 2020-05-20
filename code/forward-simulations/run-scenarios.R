@@ -8,7 +8,9 @@ library(here)
 source(here("code/forward-simulations/simulate_trajectories.R"))
 
 # Load pomp model and MLEs ------------------------------------------------
-
+# filename_mif <- "./output/Georgia_COV_2020-05-12-19-46_mif.rds"
+# filename_label <- "Georgia_COV_2020-05-12-19-46"
+# n_knots <- 10
 all_mif <- readRDS(filename_mif)
 pfs <- all_mif$pf_runs
 mifs <- all_mif$mif_runs
@@ -42,7 +44,7 @@ pf_logliks <- ll_df %>%
   dplyr::arrange(-LogLik)
 
 all_mles <- pf_logliks %>%
-  filter(LogLik > (max(LogLik)-2)) %>%
+  filter(LogLik >= (max(LogLik)-2)) %>%
   dplyr::select(-MIF_ID, -LogLik, -LogLik_SE)
 
 # Make sure there are some decent MLEs, i.e., not -inf
@@ -91,15 +93,15 @@ for(i in 1:nrow(all_mles)){
   sim_sq <- sim_sql$sims_ret %>%
     mutate(SimType = "status_quo")
   
-  sim_nal <- simulate_trajectories(pomp_model, start_date = "2020-03-01",
-                                  covar_action = "no_intervention", 
-                                  covar_no_action = 1,
-                                  param_vals = mles,
-                                  forecast_horizon_wks = weeks_ahead,
-                                  nsims = num_sims, obs_sim = obs)
-  sim_na <- sim_nal$sims_ret %>%
-    mutate(SimType = "no_intervention") %>%
-    mutate(.id = as.character(.id))  # added to match the non-counterfactual returns
+  # sim_nal <- simulate_trajectories(pomp_model, start_date = "2020-03-01",
+  #                                 covar_action = "no_intervention", 
+  #                                 covar_no_action = 1,
+  #                                 param_vals = mles,
+  #                                 forecast_horizon_wks = weeks_ahead,
+  #                                 nsims = num_sims, obs_sim = obs)
+  # sim_na <- sim_nal$sims_ret %>%
+  #   mutate(SimType = "no_intervention") %>%
+  #   mutate(.id = as.character(.id))  # added to match the non-counterfactual returns
   
   # sim_minsdl <- simulate_trajectories(pomp_model, start_date = "2020-03-01",
   #                                    covar_action = "lowest_sd", 
@@ -134,7 +136,7 @@ for(i in 1:nrow(all_mles)){
   sim_nor <- sim_norl$sims_ret %>%
     mutate(SimType = "return_normal")
   
-  all_sims <- bind_rows(sim_sq, sim_na, #sim_minsd, 
+  all_sims <- bind_rows(sim_sq, #sim_na, #sim_minsd, 
                         sim_msd, sim_lsd, sim_nor) %>%
     mutate(mle_id = i,
            rep_id =  paste(.id, mle_id, sep = "-"))
@@ -143,8 +145,8 @@ for(i in 1:nrow(all_mles)){
   # Collate the covariate scenarios
   cov_sq <- sim_sql$covars %>%
     mutate(SimType = "status_quo")
-  cov_na <- sim_nal$covars %>%
-    mutate(SimType = "no_intervention")
+  # cov_na <- sim_nal$covars %>%
+  #   mutate(SimType = "no_intervention")
   # cov_minsd <- sim_minsdl$covars %>%
   #   mutate(SimType = "lowest_sd") 
   cov_msd <- sim_msdl$covars %>%
@@ -153,7 +155,7 @@ for(i in 1:nrow(all_mles)){
     mutate(SimType = "linear_decrease_sd")
   cov_nor <- sim_norl$covars %>%
     mutate(SimType = "return_normal")
-  all_covars <- bind_rows(cov_sq, cov_na, #cov_minsd, 
+  all_covars <- bind_rows(cov_sq, #cov_na, #cov_minsd, 
                           cov_msd, cov_lsd, cov_nor)
   covar_scens <- bind_rows(covar_scens, all_covars)
 }

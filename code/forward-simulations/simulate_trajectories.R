@@ -194,8 +194,10 @@ simulate_trajectories <- function(
       covars <- as.data.frame(covars) %>%
         mutate(time = 1:n()) %>%
         rename("rel_beta_change" = covars)
-      trend_inc <- seq(inits$trendO_0, 100, length.out = 7)
-      trend_sim <- c(inits$trendO_0, trend_inc, rep(100, times = (horizon - length(trend_inc))))
+      # trend_inc <- seq(inits$trendO_0, 100, length.out = 7)
+      # trend_inc <- rep(inits$trendO_0, times = horizon)
+      # trend_sim <- c(inits$trendO_0, trend_inc)
+      trend_sim <- rep(inits$trendO_0, nrow(covars))
     }
     
     
@@ -229,7 +231,7 @@ simulate_trajectories <- function(
     # Run the simulations
     sim_out <- pomp::simulate(M2, 
                               params = param_vals,
-                              nsim = 1, 
+                              nsim = nsims, 
                               format="data.frame")
     
     # pomp runs with internal time units, add real time to results
@@ -272,7 +274,6 @@ simulate_trajectories <- function(
       bind_rows(calib_rep) %>%
       arrange(.id, Date)
   }
-  
   
   return(list(sims_ret=sims_ret, covars=covars))
 }
