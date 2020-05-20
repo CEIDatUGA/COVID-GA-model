@@ -53,8 +53,8 @@ sim_summs <- out_sims %>%
   gather(key = "Variable", value = "Value", -SimType, -Period, -Date) %>%
   group_by(SimType, Period, Date, Variable) %>%
   summarise(lower = ceiling(quantile(Value, 0.1)),
-            # ptvalue = ceiling(mean(Value)),
-            ptvalue = median(Value),
+            ptvalue = ceiling(mean(Value)),
+            # ptvalue = median(Value),
             upper = ceiling(quantile(Value, 0.9))) %>%
   ungroup()
 
@@ -541,7 +541,7 @@ ggplot(all_summs %>%
   theme(legend.position = "top") +
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
   ggtitle("New daily cases") +
-  coord_cartesian(ylim = c(0, 10000)) -> pcasesnat
+  coord_cartesian(ylim = c(0, 2000)) -> pcasesnat
 ggsave(paste0(fig_outpath, "/cases-trajs-nat.png"),
        plot = pcasesnat,
        width = 8.5, height = 3,
@@ -593,7 +593,7 @@ ggplot(all_summs %>%
   theme(legend.position = "top") +
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
   ggtitle("New daily deaths") +
-  coord_cartesian(ylim = c(0, 1000)) -> pdeathsnat
+  coord_cartesian(ylim = c(0, 150)) -> pdeathsnat
 ggsave(paste0(fig_outpath, "/deaths-trajs-nat.png"),
        plot = pdeathsnat,
        width = 8.5, height = 3,
