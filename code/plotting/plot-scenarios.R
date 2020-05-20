@@ -54,6 +54,8 @@ sim_summs <- out_sims %>%
             upper = ceiling(quantile(Value, 0.9))) %>%
   ungroup()
 
+# filter out scenarios
+sim_summs <- sim_summs %>%  filter(SimType != "linear_decrease_sd")
 
 cumulative_summs <- out_sims %>%
   dplyr::select(SimType, Date, cases, hosps, deaths, rep_id) %>%
@@ -79,6 +81,9 @@ cumulative_summs <- out_sims %>%
   mutate(SimType = SimType2) %>%
   dplyr::select(-SimType2)
 
+# filter out scenarios
+cumulative_summs <- cumulative_summs %>%  filter(SimType != "3Relax social distancing")
+
 
 # Make the plots ----------------------------------------------------------
 
@@ -86,6 +91,8 @@ cumulative_summs <- out_sims %>%
 # mycols <- c()
 mycols <- c("#5798d1", "#319045", "#e2908c", "#a11c3e", "#226e83", "#5e2b7b", "#252525")
 names(mycols) <- c('lightblue', 'green', 'pink', 'red', 'blue', 'purple', 'black')
+mycols.vec <- mycols
+names(mycols.vec) <- NULL
 
 variable_names <- c(
   "Acases" = 'New cases',
@@ -194,9 +201,12 @@ all_summs <- sim_summs %>%
   dplyr::select(-SimType2) %>%
   mutate(Period = ifelse(Period == "Past", "APast", "BFuture"))
 
+# filter out scenarios
+all_summs <- all_summs %>% filter(SimType != "3Relax social distancing")
+
 scen_labs <- c("1. Increase social distancing",
                "2. Maintain social distancing (status quo)",
-               "3. Relax social distancing",
+               # "3. Relax social distancing",
                "4. Return to normal",
                "5. What if social distancing had continued to increase?",
                "6. What if social distancing had never begun?")
@@ -226,6 +236,9 @@ cum_summs_traj <- out_sims %>%
   dplyr::select(-SimType2) %>%
   rename(Cases = ptvalue)
 
+# filter out scenarios
+cum_summs_traj <- cum_summs_traj %>% filter(SimType != "3Relax social distancing")
+
 ## line subplot
 # lp <- ggplot(cum_summs_traj, aes(x = Date, color = SimType)) +
 #   geom_line(aes(x = x, y = y), size = 1) +
@@ -239,6 +252,7 @@ cum_summs_traj <- out_sims %>%
 
 ## alt line subplot
 # geom_line(data = df[3:4,], aes(x = x, y = y), color = 'blue', size = 3)
+cases.ylim <- c(0,max(cumulative_summs$max))
 lp <- ggplot(cum_summs_traj, aes(x = Date, y = Cases)) +
   geom_line(data = filter(cum_summs_traj, SimType == '5Continuously improving social distancing'),
             color = mycols['blue'], size = 1, linetype = 2) +
@@ -248,19 +262,19 @@ lp <- ggplot(cum_summs_traj, aes(x = Date, y = Cases)) +
             color = mycols['lightblue'], size = 1, linetype = 1) +
   geom_line(data = filter(cum_summs_traj, SimType == '2Status quo'),
             color = mycols['green'], size = 1, linetype = 1) +
-  geom_line(data = filter(cum_summs_traj, SimType == '3Relax social distancing'),
-            color = mycols['pink'], size = 1, linetype = 1) +
+  # geom_line(data = filter(cum_summs_traj, SimType == '3Relax social distancing'),
+  #           color = mycols['pink'], size = 1, linetype = 1) +
   geom_line(data = filter(cum_summs_traj, SimType == '4Return to normal'),
             color = mycols['red'], size = 1, linetype = 1) +
   geom_vline(aes(xintercept = as.numeric(foredate)), color = "grey35", linetype = 2) +
   ylab("Total number of\nconfirmed cases") +
-  scale_y_continuous(labels = scales::comma, limits = c(0, 3300000)) +
+  scale_y_continuous(labels = scales::comma, limits = cases.ylim) +
   theme_minimal()
 
 ### plotly
 plotly_lp <- lp %>% plotly::ggplotly() %>%
   layout(showlegend=FALSE,
-         yaxis = list(range = c(0,3300000)),
+         yaxis = list(range = cases.ylim),
          xaxis = list(showline = TRUE),
          annotations= list(yref = 'y', xref = "x", y = 750000, x = as.numeric(foredate),
                            text = format(foredate, format="%b %d"),
@@ -268,18 +282,17 @@ plotly_lp <- lp %>% plotly::ggplotly() %>%
          )
 
 ## range subplot
-mycols.vec <- mycols
-names(mycols.vec) <- NULL
+mycols.vec.filt <- mycols.vec[-3] # filter out scenario 3
 rp <- ggplot(cumulative_summs %>%
                filter(Variable == "Acases"),
              aes(x = SimType, color = SimType,
                  text = sprintf("%s<br>Max: %s<br>Min: %s<br>Mean: %s", SimType, max, min, ptvalue))) +
   geom_segment(aes(xend = SimType, y = min, yend = max), size = 3) +
   geom_point(aes(y=ptvalue), color = "white", size = 1) +
-  scale_color_manual(values = mycols.vec) +
+  scale_color_manual(values = mycols.vec.filt) +
   ylab("") +
   xlab("") +
-  scale_y_continuous(labels = scales::comma, limits = c(0, 3300000))+
+  scale_y_continuous(labels = scales::comma, limits = cases.ylim)+
   scale_x_discrete(labels = rep("", 6)) +
   theme_void() +
   guides(color = FALSE)
@@ -287,7 +300,7 @@ rp <- ggplot(cumulative_summs %>%
 ### plotly
 plotly_rp <- rp %>% plotly::ggplotly(tooltip='text') %>% 
   layout(showlegend=FALSE,
-         yaxis = list(range = c(0,3300000),
+         yaxis = list(range = cases.ylim,
                       showline = TRUE,
                       side = "right",
                       title = "Final range across\nmultiple simulations",
@@ -308,6 +321,9 @@ covar_scensp <- covar_scens %>%
          SimType2 = ifelse(SimType == "linear_increase_sd", "1Increased social distancing", SimType2),
          SimType2 = ifelse(SimType == "return_normal", "4Return to normal", SimType2)) %>%
   mutate(SimType = SimType2)
+
+# filter out scenarios
+covar_scensp <- covar_scensp %>% filter(SimType != "3Relax social distancing")
 
 ## conditions subplot
 # cp <- ggplot(covar_scensp, aes(x = Date, y = rel_beta_change, color = SimType)) +
@@ -336,8 +352,8 @@ cp <- ggplot(covar_scensp,
             color = mycols['lightblue'], size = 1, linetype = 1) +
   geom_line(data = filter(covar_scensp, SimType == '2Status quo'),
             color = mycols['green'], size = 1, linetype = 1) +
-  geom_line(data = filter(covar_scensp, SimType == '3Relax social distancing'),
-            color = mycols['pink'], size = 1, linetype = 1) +
+  # geom_line(data = filter(covar_scensp, SimType == '3Relax social distancing'),
+  #           color = mycols['pink'], size = 1, linetype = 1) +
   geom_line(data = filter(covar_scensp, SimType == '4Return to normal'),
             color = mycols['red'], size = 1, linetype = 1) +
   geom_vline(aes(xintercept = as.numeric(foredate)), color = "grey35", linetype = 2) +
@@ -391,7 +407,7 @@ ggplot(cumulative_summs, aes(x = SimType, color = SimType)) +
   geom_point(aes(y=ptvalue), color = "white", size = 1) +
   facet_wrap(~Variable) +
   # scale_colour_viridis_d(end = 0.8) +
-  scale_color_manual(values = mycols.vec) +
+  scale_color_manual(values = mycols.vec.filt) +
   facet_wrap(~Variable, ncol = 3, scales = "free_x", labeller = labeller(Variable = variable_names_cum)) +
   ylab("Number of persons") +
   xlab("") +
@@ -412,7 +428,7 @@ ggplot(cumulative_summs, aes(x = SimType, color = SimType)) +
   geom_point(aes(y=ptvalue), color = "white", size = 1) +
   facet_wrap(~Variable) +
   # scale_colour_viridis_d(end = 0.8) +
-  scale_color_manual(values = mycols.vec) +
+  scale_color_manual(values = mycols.vec.filt) +
   facet_wrap(~Variable, ncol = 3, scales = "free_x", labeller = labeller(Variable = variable_names_cum)) +
   ylab("Number of persons") +
   xlab("") +
@@ -437,7 +453,7 @@ ggplot(all_summs, aes(x = Date, color = SimType)) +
   geom_vline(aes(xintercept = Sys.Date()), color = "grey35", linetype = 2) +
   facet_wrap(~Variable, ncol = 3, scales = "free_y",
              labeller = labeller(Variable = variable_names)) +
-  scale_color_manual(values = mycols.vec, name = "", labels = scen_labs) +
+  scale_color_manual(values = mycols.vec.filt, name = "", labels = scen_labs) +
   theme_minimal() +
   ylab("Number of persons") +
   scale_y_continuous(labels = scales::comma) +
@@ -454,7 +470,7 @@ ggplot(all_summs, aes(x = Date,  color = SimType)) +
   geom_vline(aes(xintercept = Sys.Date()), color = "grey35", linetype = 2) +
   facet_wrap(~Variable, ncol = 3, scales = "free_y",
              labeller = labeller(Variable = variable_names)) +
-  scale_color_manual(values = mycols.vec, name = "", labels = scen_labs) +
+  scale_color_manual(values = mycols.vec.filt, name = "", labels = scen_labs) +
   theme_minimal() +
   ylab("Number of persons") +
   scale_y_continuous(labels = scales::comma, trans = "log",
@@ -489,7 +505,7 @@ ggsave(paste0(fig_outpath, "/two-projs-line-nat.png"),
 
 scen_labs <- c("1Increased social distancing" = "1. Increase\nsocial distancing",
                "2Status quo" = "2. Maintain\nsocial distancing\n(status quo)",
-               "3Relax social distancing" = "3. Relax\nsocial distancing",
+               # "3Relax social distancing" = "3. Relax\nsocial distancing",
                "4Return to normal" = "4. Return to normal",
                "5Continuously improving social distancing" = "5. What if\nsocial distancing had\ncontinued to increase?",
                "6No intervention" = "6. What if\nsocial distancing had\nnever begun?")
@@ -513,6 +529,9 @@ infection_summaries <- out_sims %>%
          SimType2 = ifelse(SimType == "return_normal", "4Return to normal", SimType2)) %>%
   mutate(SimType = SimType2) %>%
   mutate(Period = ifelse(Period == "Past", "APast", "BFuture"))
+
+# filter out scenarios
+infection_summaries <- infection_summaries %>% filter(SimType != "3Relax social distancing")
 
 collabs <- c("Past", "Future")
 ggplot(infection_summaries, aes(x = Date, color = Period, fill = Period)) +
@@ -613,7 +632,6 @@ ggsave(paste0(fig_outpath, "/deaths-trajs-nat.png"),
        plot = pdeathsnat,
        width = 8.5, height = 3,
        units = "in", dpi = 300)
-
 
 ## LOG SCALE
 ggplot(infection_summaries, aes(x = Date, color = Period, fill = Period)) +
