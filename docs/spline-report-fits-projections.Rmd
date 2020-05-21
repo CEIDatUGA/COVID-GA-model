@@ -71,7 +71,7 @@ pf_logliks <- ll_df %>%
   dplyr::arrange(-LogLik)
 
 all_mles <- pf_logliks %>%
-  filter(LogLik > (max(LogLik)-2)) %>%
+  # filter(LogLik > (max(LogLik)-2)) %>%
   dplyr::select(-MIF_ID, -LogLik, -LogLik_SE)
 ```
 
@@ -105,12 +105,12 @@ Once the data become more informative, about half way through March, the trends 
 ```{r trends}
 dates <- unique(pomp_data$Date)
 num_days <- length(dates)
-bases <- bspline.basis(x=1:num_days, nbasis=10, degree=3)
+bases <- bspline.basis(x=1:num_days, nbasis=12, degree=3)
 
 all_mles %>%
   mutate(id = 1:n()) %>%
   gather("key", "value", -id) %>%
-  filter(key %in% paste0("b", 1:10)) %>%
+  filter(key %in% paste0("b", 1:12)) %>%
   spread(key, value) %>%
   dplyr::select(-id) -> betas
 
@@ -130,7 +130,7 @@ trend_df <- trend_df %>%
   mutate(`MLE set` = as.factor(`MLE set`))
 
 ggplot(trend_df, aes(Date, Psi, color = `MLE set`, group = `MLE set`)) +
-  geom_line(size = 1)
+  geom_line(size = 1, alpha = 0.5)
 ```
 
 ### Variability in other parameter values across MLE sets
