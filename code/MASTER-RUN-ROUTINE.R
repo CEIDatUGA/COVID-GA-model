@@ -95,6 +95,20 @@ if (datasource == "GAD") {
   pomp_data <- loadcleanGDPHdata(start_date = "2020-03-01")
 }
 
+# Apply 7-day moving average to the data
+# ma <- function(x) {
+#   window <- 7
+#   n <- c(seq.int(window), rep(window, length(x)-window))
+#   xm <- ceiling(data.table::frollmean(x, n, adaptive=TRUE, na.rm = T))
+#   xm[is.nan(xm)] <- NA 
+#   return(xm)
+# }
+# 
+# pomp_data <- pomp_data %>%
+#   mutate(cases = ma(cases),
+#          hosps = ma(hosps),
+#          deaths = ma(deaths))
+
 
 
 # Read in the movement data covariate table -------------------------------
