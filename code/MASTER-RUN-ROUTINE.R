@@ -139,6 +139,8 @@ pomp_model <- makepompmodel(par_var_list = par_var_list,
                             pomp_data = pomp_data, 
                             covar_table = covar_table)
 
+sim <- simulate(pomp_model, nsim = 1, params = par_var_list$allparvals, format = "data.frame")
+sim
 
 # Run the mif fitting routine ---------------------------------------------
 # turn on parallel running or not
@@ -152,7 +154,7 @@ parallel_info$num_cores <- 30  # on HPC
 # these 2 rounds are currently hard-coded into runmif
 mif_settings = list()
 mif_settings$mif_num_particles  <- c(2000, 2000)
-mif_settings$mif_num_iterations <- c(150, 150)
+mif_settings$mif_num_iterations <- c(100, 100)
 mif_settings$mif_cooling_fracs <- c(0.9, 0.7)
 mif_settings$pf_num_particles <- 5000
 mif_settings$pf_reps <- 10
