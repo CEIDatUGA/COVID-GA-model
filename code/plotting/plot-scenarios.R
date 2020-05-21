@@ -9,7 +9,7 @@ library(here)
 datasource <- "COV"
 if(datasource == "COV") {
   fig_outpath <- here("output/figures/covidtracker-figures/")
-  most_recent_files <- tail(list.files(path = here("output"), "Georgia_COV"), 3)
+  most_recent_files <- tail(list.files(path = here("output"), "Georgia_COV"), 6)[1:3]
 }
 if(datasource == "GAD") {
   fig_outpath <- here("output/figures/gadph-figures/")

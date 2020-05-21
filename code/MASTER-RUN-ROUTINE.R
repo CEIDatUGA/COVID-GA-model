@@ -57,10 +57,10 @@ filename_label <- paste(location,datasource,stamp,sep="_")
 
 # Parameters
 est_these_pars = c("log_beta_s", 
-                   "frac_hosp", "frac_dead", 
-                   "max_detect_par", 
+                   "frac_dead", 
+                   "max_detect_par", "base_detect_frac",
                    "log_sigma_dw",
-                   "log_theta_cases", "log_theta_hosps", "log_theta_deaths")
+                   "log_theta_cases", "log_theta_deaths")
 
 # Initial conditions
 # est_these_inivals = c("E1_0", "Ia1_0", "Isu1_0", "Isd1_0")
@@ -96,18 +96,18 @@ if (datasource == "GAD") {
 }
 
 # Apply 7-day moving average to the data
-# ma <- function(x) {
-#   window <- 7
-#   n <- c(seq.int(window), rep(window, length(x)-window))
-#   xm <- ceiling(data.table::frollmean(x, n, adaptive=TRUE, na.rm = T))
-#   xm[is.nan(xm)] <- NA 
-#   return(xm)
-# }
-# 
-# pomp_data <- pomp_data %>%
-#   mutate(cases = ma(cases),
-#          hosps = ma(hosps),
-#          deaths = ma(deaths))
+ma <- function(x) {
+  window <- 7
+  n <- c(seq.int(window), rep(window, length(x)-window))
+  xm <- ceiling(data.table::frollmean(x, n, adaptive=TRUE, na.rm = T))
+  xm[is.nan(xm)] <- NA
+  return(xm)
+}
+
+pomp_data <- pomp_data %>%
+  mutate(cases = ma(cases),
+         hosps = ma(hosps),
+         deaths = ma(deaths))
 
 
 
