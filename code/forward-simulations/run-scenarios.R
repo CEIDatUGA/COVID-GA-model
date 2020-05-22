@@ -43,7 +43,8 @@ pf_logliks <- ll_df %>%
 
 all_mles <- pf_logliks %>%
   filter(!is.nan(LogLik)) %>%
-  filter(LogLik >= (max(LogLik)-2)) %>%
+  # filter(LogLik >= (max(LogLik)-2)) %>%
+  slice(1:10) %>%
   dplyr::select(-MIF_ID, -LogLik, -LogLik_SE)
 
 # Make sure there are some decent MLEs, i.e., not -inf

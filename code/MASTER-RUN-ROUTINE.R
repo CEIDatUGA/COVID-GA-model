@@ -57,8 +57,8 @@ filename_label <- paste(location,datasource,stamp,sep="_")
 
 # Parameters
 est_these_pars = c("log_beta_s", 
-                   "frac_dead", "log_half_detect",
-                   "max_detect_par", #"base_detect_frac",
+                   "frac_dead", "log_half_detect", "log_half_diag",
+                   "max_detect_par",
                    "log_sigma_dw",
                    "log_theta_cases", "log_theta_deaths")
 
