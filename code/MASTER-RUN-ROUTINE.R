@@ -139,7 +139,7 @@ source(here("code/model-setup/makepompmodel.R"))
 # covar_table2$rel_beta_change[40:80] = 0.4
 pomp_model <- makepompmodel(par_var_list = par_var_list, 
                             pomp_data = pomp_data, 
-                            covar_table = covar_table2)
+                            covar_table = covar_table)
 
 # params <- par_var_list$allparvals
 # params["log_half_detect"] <- log(12)

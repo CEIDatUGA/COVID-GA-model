@@ -43,8 +43,7 @@ pf_logliks <- ll_df %>%
 
 all_mles <- pf_logliks %>%
   filter(!is.nan(LogLik)) %>%
-  # filter(LogLik >= (max(LogLik)-2)) %>%
-  slice(1:10) %>%
+  filter(LogLik >= (max(LogLik)-2)) %>%
   dplyr::select(-MIF_ID, -LogLik, -LogLik_SE)
 
 # Make sure there are some decent MLEs, i.e., not -inf
@@ -72,13 +71,13 @@ obs_sim2 <- obs_sim2 %>%
 obs_sim <- bind_rows(obs_sim, obs_sim2)
 
 
-obs_sim %>% 
-  filter(mle_id != 999) %>%
-  mutate(rep = paste0(mle_id, .id)) %>%
-  ggplot(aes(x = time, y = C_new)) +
-  geom_line(alpha = 0.1, aes(group = rep)) +
-  geom_point(data = obs_sim2, aes(x = time, y = cases)) +
-  coord_cartesian(xlim = c(0,20))
+# obs_sim %>% 
+#   filter(mle_id != 999) %>%
+#   mutate(rep = paste0(mle_id, .id)) %>%
+#   ggplot(aes(x = time, y = deaths)) +
+#   geom_line(alpha = 0.1, aes(group = rep)) +
+#   geom_point(data = obs_sim2, aes(x = time, y = deaths)) +
+#   coord_cartesian(ylim = c(0,100))
 
 
 # Run simulations ---------------------------------------------------------

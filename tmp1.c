@@ -1,13 +1,8 @@
 /* pomp C snippet file: tmp1 */
-<<<<<<< HEAD
-/* Time: 2020-05-22 10:19:30.513 -0400 */
-/* Salt: DCA4C2B79AC918E2733E8D21 */
-=======
-/* Time: 2020-05-22 15:07:19.686 -0600 */
-/* Salt: 3174EFFCF21917B580A0D230 */
->>>>>>> d54a7f39524bffa585703eb02e141ced58a22150
+/* Time: 2020-05-22 17:37:02.954 -0400 */
+/* Salt: 3C4E6BA8C1299670398CD115 */
 
-#include <C:/Users/atredennick/Documents/R/win-library/3.6/pomp/include/pomp.h>
+#include <pomp.h>
 #include <R_ext/Rdynload.h>
 
  
