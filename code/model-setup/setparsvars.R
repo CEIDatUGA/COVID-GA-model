@@ -80,7 +80,7 @@ setparsvars <- function(est_these_pars, est_these_inivals, tint)
                max_detect_par = log(1.5),  #max fraction detected
                log_detect_inc_rate = log(10), #speed at which fraction detected ramps up
                log_half_detect = log(tint), #time at which intervention is at 50%
-               base_detect_frac = log(0.1), #min fraction detected at start
+               # base_detect_frac = 2, #min fraction detected at start
                
                frac_asym = 1.5, #fraction asymptomatic
                frac_hosp = 2, #fraction diagnosed that go into hospital, modeled as 1/(1+exp(frac_hosp))

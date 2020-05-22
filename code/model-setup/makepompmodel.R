@@ -72,9 +72,9 @@ makepompmodel <- function(par_var_list, pomp_data, covar_table)
     // Starts at 0 at simulation start, then ramps up to some max value (0-1). 
     // Ramp-up speed and max value are fitted.
     // equation for this is 1/(1+exp(max_detect_par)) * exp(log_detect_inc_rate)^t / (exp(log_detect_inc_rate)^exp(log_half_detect) + exp(log_detect_inc_rate)^t) + base_detect_frac  
-    detect_frac = 1/(1+exp(max_detect_par)) * pow(t, exp(log_detect_inc_rate))  / ( pow(exp(log_half_detect),exp(log_detect_inc_rate)) + pow(t,exp(log_detect_inc_rate))) + exp(base_detect_frac);
+    //detect_frac = 1/(1+exp(max_detect_par)) * pow(t, exp(log_detect_inc_rate))  / ( pow(exp(log_half_detect),exp(log_detect_inc_rate)) + pow(t,exp(log_detect_inc_rate))) + base_detect_frac;
     
-    //detect_frac = 1/(1+exp(max_detect_par)) * pow(t, exp(log_detect_inc_rate))  / ( pow(exp(log_half_detect),exp(log_detect_inc_rate)) + pow(t,exp(log_detect_inc_rate)));
+    detect_frac = 1/(1+exp(max_detect_par)) * pow(t, exp(log_detect_inc_rate))  / ( pow(exp(log_half_detect),exp(log_detect_inc_rate)) + pow(t,exp(log_detect_inc_rate)));
     
     
     // -----------------------------------
@@ -333,7 +333,7 @@ makepompmodel <- function(par_var_list, pomp_data, covar_table)
   
   # remove any column in data that's not time or the fitted variables
   # otherwise pomp might get indigestion
-  dat_for_pomp <- pomp_data %>% select(time, cases, hosps, deaths)
+  dat_for_pomp <- pomp_data %>% select(time, cases, deaths)
   
   
   # Define the pomp model object --------------------------------------------

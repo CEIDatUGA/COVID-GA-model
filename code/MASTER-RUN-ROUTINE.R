@@ -57,8 +57,8 @@ filename_label <- paste(location,datasource,stamp,sep="_")
 
 # Parameters
 est_these_pars = c("log_beta_s", 
-                   "frac_dead", 
-                   "max_detect_par", "base_detect_frac",
+                   "frac_dead", "log_half_detect",
+                   "max_detect_par", #"base_detect_frac",
                    "log_sigma_dw",
                    "log_theta_cases", "log_theta_deaths")
 
@@ -139,8 +139,8 @@ pomp_model <- makepompmodel(par_var_list = par_var_list,
                             pomp_data = pomp_data, 
                             covar_table = covar_table)
 
-sim <- simulate(pomp_model, nsim = 1, params = par_var_list$allparvals, format = "data.frame")
-sim
+# sim <- simulate(pomp_model, nsim = 1, params = par_var_list$allparvals, format = "data.frame")
+# sim
 
 # Run the mif fitting routine ---------------------------------------------
 # turn on parallel running or not
@@ -208,7 +208,7 @@ source(here("code/forward-simulations/simulate_trajectories.R"))
 # Source the script run the scenarios -- saves a file this time
 source(here("code/forward-simulations/run-scenarios.R"))
 
-source(here("code/forecasting-code/format-forecasts.R"))
+# source(here("code/forecasting-code/format-forecasts.R"))
 
 
 # Make the plots for the website ------------------------------------------

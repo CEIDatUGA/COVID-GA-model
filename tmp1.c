@@ -1,6 +1,6 @@
 /* pomp C snippet file: tmp1 */
-/* Time: 2020-05-21 12:23:15.908 -0400 */
-/* Salt: 99149DEC361D5ABD2B23FB0C */
+/* Time: 2020-05-21 22:57:11.912 -0400 */
+/* Salt: 7593DCD3CE51A581F5131B07 */
 
 #include <pomp.h>
 #include <R_ext/Rdynload.h>
@@ -26,23 +26,22 @@
 #define max_detect_par		(__p[__parindex[14]])
 #define log_detect_inc_rate		(__p[__parindex[15]])
 #define log_half_detect		(__p[__parindex[16]])
-#define base_detect_frac		(__p[__parindex[17]])
-#define frac_asym		(__p[__parindex[18]])
-#define frac_hosp		(__p[__parindex[19]])
-#define frac_dead		(__p[__parindex[20]])
-#define log_theta_cases		(__p[__parindex[21]])
-#define log_theta_hosps		(__p[__parindex[22]])
-#define log_theta_deaths		(__p[__parindex[23]])
-#define log_sigma_dw		(__p[__parindex[24]])
-#define S_0		(__p[__parindex[25]])
-#define E1_0		(__p[__parindex[26]])
-#define Ia1_0		(__p[__parindex[27]])
-#define Isu1_0		(__p[__parindex[28]])
-#define Isd1_0		(__p[__parindex[29]])
-#define C1_0		(__p[__parindex[30]])
-#define H1_0		(__p[__parindex[31]])
-#define R_0		(__p[__parindex[32]])
-#define D_0		(__p[__parindex[33]])
+#define frac_asym		(__p[__parindex[17]])
+#define frac_hosp		(__p[__parindex[18]])
+#define frac_dead		(__p[__parindex[19]])
+#define log_theta_cases		(__p[__parindex[20]])
+#define log_theta_hosps		(__p[__parindex[21]])
+#define log_theta_deaths		(__p[__parindex[22]])
+#define log_sigma_dw		(__p[__parindex[23]])
+#define S_0		(__p[__parindex[24]])
+#define E1_0		(__p[__parindex[25]])
+#define Ia1_0		(__p[__parindex[26]])
+#define Isu1_0		(__p[__parindex[27]])
+#define Isd1_0		(__p[__parindex[28]])
+#define C1_0		(__p[__parindex[29]])
+#define H1_0		(__p[__parindex[30]])
+#define R_0		(__p[__parindex[31]])
+#define D_0		(__p[__parindex[32]])
 #define rel_beta_change		(__covars[__covindex[0]])
 #define S		(__x[__stateindex[0]])
 #define E1		(__x[__stateindex[1]])
@@ -134,7 +133,6 @@ void __pomp_rinit (double *__x, const double *__p, double t, const int *__statei
 #undef max_detect_par
 #undef log_detect_inc_rate
 #undef log_half_detect
-#undef base_detect_frac
 #undef frac_asym
 #undef frac_hosp
 #undef frac_dead
@@ -201,23 +199,22 @@ void __pomp_rinit (double *__x, const double *__p, double t, const int *__statei
 #define max_detect_par		(__p[__parindex[14]])
 #define log_detect_inc_rate		(__p[__parindex[15]])
 #define log_half_detect		(__p[__parindex[16]])
-#define base_detect_frac		(__p[__parindex[17]])
-#define frac_asym		(__p[__parindex[18]])
-#define frac_hosp		(__p[__parindex[19]])
-#define frac_dead		(__p[__parindex[20]])
-#define log_theta_cases		(__p[__parindex[21]])
-#define log_theta_hosps		(__p[__parindex[22]])
-#define log_theta_deaths		(__p[__parindex[23]])
-#define log_sigma_dw		(__p[__parindex[24]])
-#define S_0		(__p[__parindex[25]])
-#define E1_0		(__p[__parindex[26]])
-#define Ia1_0		(__p[__parindex[27]])
-#define Isu1_0		(__p[__parindex[28]])
-#define Isd1_0		(__p[__parindex[29]])
-#define C1_0		(__p[__parindex[30]])
-#define H1_0		(__p[__parindex[31]])
-#define R_0		(__p[__parindex[32]])
-#define D_0		(__p[__parindex[33]])
+#define frac_asym		(__p[__parindex[17]])
+#define frac_hosp		(__p[__parindex[18]])
+#define frac_dead		(__p[__parindex[19]])
+#define log_theta_cases		(__p[__parindex[20]])
+#define log_theta_hosps		(__p[__parindex[21]])
+#define log_theta_deaths		(__p[__parindex[22]])
+#define log_sigma_dw		(__p[__parindex[23]])
+#define S_0		(__p[__parindex[24]])
+#define E1_0		(__p[__parindex[25]])
+#define Ia1_0		(__p[__parindex[26]])
+#define Isu1_0		(__p[__parindex[27]])
+#define Isd1_0		(__p[__parindex[28]])
+#define C1_0		(__p[__parindex[29]])
+#define H1_0		(__p[__parindex[30]])
+#define R_0		(__p[__parindex[31]])
+#define D_0		(__p[__parindex[32]])
 #define rel_beta_change		(__covars[__covindex[0]])
 #define S		(__x[__stateindex[0]])
 #define E1		(__x[__stateindex[1]])
@@ -306,9 +303,9 @@ void __pomp_stepfn (double *__x, const double *__p, const int *__stateindex, con
     // Starts at 0 at simulation start, then ramps up to some max value (0-1). 
     // Ramp-up speed and max value are fitted.
     // equation for this is 1/(1+exp(max_detect_par)) * exp(log_detect_inc_rate)^t / (exp(log_detect_inc_rate)^exp(log_half_detect) + exp(log_detect_inc_rate)^t) + base_detect_frac  
-    detect_frac = 1/(1+exp(max_detect_par)) * pow(t, exp(log_detect_inc_rate))  / ( pow(exp(log_half_detect),exp(log_detect_inc_rate)) + pow(t,exp(log_detect_inc_rate))) + exp(base_detect_frac);
+    //detect_frac = 1/(1+exp(max_detect_par)) * pow(t, exp(log_detect_inc_rate))  / ( pow(exp(log_half_detect),exp(log_detect_inc_rate)) + pow(t,exp(log_detect_inc_rate))) + base_detect_frac;
     
-    //detect_frac = 1/(1+exp(max_detect_par)) * pow(t, exp(log_detect_inc_rate))  / ( pow(exp(log_half_detect),exp(log_detect_inc_rate)) + pow(t,exp(log_detect_inc_rate)));
+    detect_frac = 1/(1+exp(max_detect_par)) * pow(t, exp(log_detect_inc_rate))  / ( pow(exp(log_half_detect),exp(log_detect_inc_rate)) + pow(t,exp(log_detect_inc_rate)));
     
     
     // -----------------------------------
@@ -454,7 +451,6 @@ void __pomp_stepfn (double *__x, const double *__p, const int *__stateindex, con
 #undef max_detect_par
 #undef log_detect_inc_rate
 #undef log_half_detect
-#undef base_detect_frac
 #undef frac_asym
 #undef frac_hosp
 #undef frac_dead
@@ -521,23 +517,22 @@ void __pomp_stepfn (double *__x, const double *__p, const int *__stateindex, con
 #define max_detect_par		(__p[__parindex[14]])
 #define log_detect_inc_rate		(__p[__parindex[15]])
 #define log_half_detect		(__p[__parindex[16]])
-#define base_detect_frac		(__p[__parindex[17]])
-#define frac_asym		(__p[__parindex[18]])
-#define frac_hosp		(__p[__parindex[19]])
-#define frac_dead		(__p[__parindex[20]])
-#define log_theta_cases		(__p[__parindex[21]])
-#define log_theta_hosps		(__p[__parindex[22]])
-#define log_theta_deaths		(__p[__parindex[23]])
-#define log_sigma_dw		(__p[__parindex[24]])
-#define S_0		(__p[__parindex[25]])
-#define E1_0		(__p[__parindex[26]])
-#define Ia1_0		(__p[__parindex[27]])
-#define Isu1_0		(__p[__parindex[28]])
-#define Isd1_0		(__p[__parindex[29]])
-#define C1_0		(__p[__parindex[30]])
-#define H1_0		(__p[__parindex[31]])
-#define R_0		(__p[__parindex[32]])
-#define D_0		(__p[__parindex[33]])
+#define frac_asym		(__p[__parindex[17]])
+#define frac_hosp		(__p[__parindex[18]])
+#define frac_dead		(__p[__parindex[19]])
+#define log_theta_cases		(__p[__parindex[20]])
+#define log_theta_hosps		(__p[__parindex[21]])
+#define log_theta_deaths		(__p[__parindex[22]])
+#define log_sigma_dw		(__p[__parindex[23]])
+#define S_0		(__p[__parindex[24]])
+#define E1_0		(__p[__parindex[25]])
+#define Ia1_0		(__p[__parindex[26]])
+#define Isu1_0		(__p[__parindex[27]])
+#define Isd1_0		(__p[__parindex[28]])
+#define C1_0		(__p[__parindex[29]])
+#define H1_0		(__p[__parindex[30]])
+#define R_0		(__p[__parindex[31]])
+#define D_0		(__p[__parindex[32]])
 #define rel_beta_change		(__covars[__covindex[0]])
 #define S		(__x[__stateindex[0]])
 #define E1		(__x[__stateindex[1]])
@@ -602,7 +597,6 @@ void __pomp_rmeasure (double *__y, const double *__x, const double *__p, const i
 #undef max_detect_par
 #undef log_detect_inc_rate
 #undef log_half_detect
-#undef base_detect_frac
 #undef frac_asym
 #undef frac_hosp
 #undef frac_dead
@@ -671,23 +665,22 @@ void __pomp_rmeasure (double *__y, const double *__x, const double *__p, const i
 #define max_detect_par		(__p[__parindex[14]])
 #define log_detect_inc_rate		(__p[__parindex[15]])
 #define log_half_detect		(__p[__parindex[16]])
-#define base_detect_frac		(__p[__parindex[17]])
-#define frac_asym		(__p[__parindex[18]])
-#define frac_hosp		(__p[__parindex[19]])
-#define frac_dead		(__p[__parindex[20]])
-#define log_theta_cases		(__p[__parindex[21]])
-#define log_theta_hosps		(__p[__parindex[22]])
-#define log_theta_deaths		(__p[__parindex[23]])
-#define log_sigma_dw		(__p[__parindex[24]])
-#define S_0		(__p[__parindex[25]])
-#define E1_0		(__p[__parindex[26]])
-#define Ia1_0		(__p[__parindex[27]])
-#define Isu1_0		(__p[__parindex[28]])
-#define Isd1_0		(__p[__parindex[29]])
-#define C1_0		(__p[__parindex[30]])
-#define H1_0		(__p[__parindex[31]])
-#define R_0		(__p[__parindex[32]])
-#define D_0		(__p[__parindex[33]])
+#define frac_asym		(__p[__parindex[17]])
+#define frac_hosp		(__p[__parindex[18]])
+#define frac_dead		(__p[__parindex[19]])
+#define log_theta_cases		(__p[__parindex[20]])
+#define log_theta_hosps		(__p[__parindex[21]])
+#define log_theta_deaths		(__p[__parindex[22]])
+#define log_sigma_dw		(__p[__parindex[23]])
+#define S_0		(__p[__parindex[24]])
+#define E1_0		(__p[__parindex[25]])
+#define Ia1_0		(__p[__parindex[26]])
+#define Isu1_0		(__p[__parindex[27]])
+#define Isd1_0		(__p[__parindex[28]])
+#define C1_0		(__p[__parindex[29]])
+#define H1_0		(__p[__parindex[30]])
+#define R_0		(__p[__parindex[31]])
+#define D_0		(__p[__parindex[32]])
 #define rel_beta_change		(__covars[__covindex[0]])
 #define S		(__x[__stateindex[0]])
 #define E1		(__x[__stateindex[1]])
@@ -772,7 +765,6 @@ void __pomp_dmeasure (double *__lik, const double *__y, const double *__x, const
 #undef max_detect_par
 #undef log_detect_inc_rate
 #undef log_half_detect
-#undef base_detect_frac
 #undef frac_asym
 #undef frac_hosp
 #undef frac_dead

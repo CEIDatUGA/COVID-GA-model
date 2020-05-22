@@ -9,7 +9,7 @@ library(here)
 datasource <- "COV"
 if(datasource == "COV") {
   fig_outpath <- here("output/figures/covidtracker-figures/")
-  most_recent_files <- tail(list.files(path = here("output"), "Georgia_COV"), 6)[1:3]
+  most_recent_files <- tail(list.files(path = here("output"), "Georgia_COV"), 3)
 }
 if(datasource == "GAD") {
   fig_outpath <- here("output/figures/gadph-figures/")
@@ -43,9 +43,9 @@ pomp_data <- all_mif$pomp_data %>%
 # Summarize the simulations -----------------------------------------------
 
 sim_summs <- out_sims %>%
-  dplyr::select(SimType, Period, Date, cases, hosps, deaths) %>%
+  dplyr::select(SimType, Period, Date, cases, deaths) %>%
   rename("Acases" = cases,
-         "Bhosps" = hosps,
+         # "Bhosps" = hosps,
          "Cdeaths" = deaths) %>%
   gather(key = "Variable", value = "Value", -SimType, -Period, -Date) %>%
   group_by(SimType, Period, Date, Variable) %>%
@@ -58,9 +58,9 @@ sim_summs <- out_sims %>%
 sim_summs <- sim_summs %>%  filter(SimType != "linear_decrease_sd")
 
 cumulative_summs <- out_sims %>%
-  dplyr::select(SimType, Date, cases, hosps, deaths, rep_id) %>%
+  dplyr::select(SimType, Date, cases, deaths, rep_id) %>%
   rename("Acases" = cases,
-         "Bhosps" = hosps,
+         # "Bhosps" = hosps,
          "Cdeaths" = deaths) %>%
   gather(key = "Variable", value = "Value", -SimType, -Date, -rep_id) %>%
   arrange(SimType, Variable, rep_id, Date) %>%
@@ -121,9 +121,9 @@ fits <- sim_summs %>%
 fitreps <- out_sims %>%
   filter(SimType == "status_quo") %>%
   filter(Period == "Past") %>%
-  dplyr::select(mle_id, SimType, Date, cases, hosps, deaths) %>%
+  dplyr::select(mle_id, SimType, Date, cases, deaths) %>%
   rename("Acases" = cases,
-         "Bhosps" = hosps,
+         # "Bhosps" = hosps,
          "Cdeaths" = deaths) %>%
   gather(key = "Variable", value = "Value",-mle_id, -SimType, -Date) %>%
   group_by(Date, Variable, mle_id) %>%
