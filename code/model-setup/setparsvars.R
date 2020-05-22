@@ -64,7 +64,8 @@ setparsvars <- function(est_these_pars, est_these_inivals, tint)
                log_g_su = log(4/6),
                log_g_sd = log(4/3),
                log_g_c = log(4/3),
-               log_g_h = log(4/12),
+               # log_g_h = log(4/12),
+               log_g_h = log(4/6),
                
                # log_g_e = rev_logistic(1/4), #rate of movement through E/Ia/Isu/Isd/C/H compartments
                # log_g_a = rev_logistic(1/3.5),

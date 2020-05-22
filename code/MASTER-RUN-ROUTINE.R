@@ -106,7 +106,7 @@ ma <- function(x) {
 
 pomp_data <- pomp_data %>%
   mutate(cases = ma(cases),
-         hosps = ma(hosps),
+         # hosps = ma(hosps),
          deaths = ma(deaths))
 
 
@@ -135,12 +135,36 @@ stopifnot(nrow(covar_table) == nrow(pomp_data))
 # use data, covariate and parameter information to make a 
 # pomp model that's ready for fitting
 source(here("code/model-setup/makepompmodel.R"))
+# covar_table2 <- covar_table
+# covar_table2$rel_beta_change[40:80] = 0.4
 pomp_model <- makepompmodel(par_var_list = par_var_list, 
                             pomp_data = pomp_data, 
-                            covar_table = covar_table)
+                            covar_table = covar_table2)
 
-# sim <- simulate(pomp_model, nsim = 1, params = par_var_list$allparvals, format = "data.frame")
-# sim
+# params <- par_var_list$allparvals
+# params["log_half_detect"] <- log(12)
+# params["log_half_diag"] <- log(12)
+# # params["log_max_diag"] <- log(1)
+# 1/(1+exp(1))
+# params["max_detect_par"] <- 0.5
+# params["frac_dead"] <- 0.25
+# params["log_g_h"] = log(4/6)
+# params["log_g_c"] = log(4/3)
+# sim <- simulate(pomp_model, nsim = 1, params = params, format = "data.frame")
+# tmax <- nrow(sim)
+# par(mfrow=c(1,2))
+# plot(sim$C_new[1:tmax], type = "l")
+# lines(pomp_data$cases[1:tmax], lty = 2)
+# plot(sim$D_new[1:tmax], type = "l")
+# lines(pomp_data$deaths[1:tmax], lty = 2)
+
+# pf <- pfilter(pomp_model,Np=1000,params=params)
+# logLik(pf)
+# 
+# t <- 1:80
+# diag_speedup <- 1 + exp(params["log_max_diag"]) * exp(params["log_diag_inc_rate"])^t /  ( exp(params["log_diag_inc_rate"])^exp(params["log_half_diag"]) +   exp(params["log_diag_inc_rate"])^t    )
+# g_sd = diag_speedup*exp(params["log_g_sd"]) 
+# g_c = exp(log_g_c)/diag_speedup; 
 
 # Run the mif fitting routine ---------------------------------------------
 # turn on parallel running or not
