@@ -64,7 +64,8 @@ setparsvars <- function(est_these_pars, est_these_inivals, tint)
                log_g_su = log(4/6),
                log_g_sd = log(4/3),
                log_g_c = log(4/3),
-               log_g_h = log(4/12),
+               # log_g_h = log(4/12),
+               log_g_h = log(4/6),
                
                # log_g_e = rev_logistic(1/4), #rate of movement through E/Ia/Isu/Isd/C/H compartments
                # log_g_a = rev_logistic(1/3.5),
@@ -77,9 +78,10 @@ setparsvars <- function(est_these_pars, est_these_inivals, tint)
                log_diag_inc_rate = log(10), #rate at which faster diagnosis ramps up to max
                log_half_diag = log(tint),  #time at which intervention is at 50%
                
-               max_detect_par = log(1),  #max fraction detected
+               max_detect_par = log(1.5),  #max fraction detected
                log_detect_inc_rate = log(10), #speed at which fraction detected ramps up
                log_half_detect = log(tint), #time at which intervention is at 50%
+               # base_detect_frac = 2, #min fraction detected at start
                
                frac_asym = 1.5, #fraction asymptomatic
                frac_hosp = 2, #fraction diagnosed that go into hospital, modeled as 1/(1+exp(frac_hosp))

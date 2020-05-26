@@ -92,19 +92,19 @@ simulate_trajectories <- function(
     
     last_time <- obs_sim %>%
       filter(time == max(time)) %>%
-      dplyr::select(.id, mle_id, cases, hosps, deaths)
+      dplyr::select(.id, mle_id, cases, deaths)
     dat <- last_time %>%
       filter(.id == "data")
     init_id <- last_time %>%
       filter(.id != "data") %>%
       mutate(obs_cases = dat$cases,
-             obs_hosps = dat$hosps,
+             # obs_hosps = dat$hosps,
              obs_deaths = dat$deaths) %>%
       mutate(dif1 = (obs_cases - cases)^2,
-             dif2 = (obs_hosps - hosps)^2,
+             # dif2 = (obs_hosps - hosps)^2,
              dif3 = (obs_deaths - deaths)^2) %>%
       group_by(.id, mle_id) %>%
-      mutate(totdif = mean(c(dif1, dif2, dif3), na.rm = TRUE)) %>%
+      mutate(totdif = mean(c(dif1, dif3), na.rm = TRUE)) %>%
       ungroup() %>%
       filter(totdif == min(totdif)) %>%
       dplyr::select(.id, mle_id)
@@ -113,7 +113,8 @@ simulate_trajectories <- function(
       filter(mle_id == init_id$mle_id) %>%
       filter(.id == init_id$.id) %>%
       tail(1) %>%
-      dplyr::select(-time, -.id, -cases, -hosps, -deaths, -rel_beta_change) %>%
+      # dplyr::select(-time, -.id, -cases, -hosps, -deaths, -rel_beta_change) %>%
+      dplyr::select(-time, -.id, -cases, -deaths, -rel_beta_change) %>%
       summarise(S_0=S,
                 E1_0=log(E1), 
                 Ia1_0=log(Ia1), 

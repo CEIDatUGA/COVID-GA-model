@@ -10,6 +10,9 @@ datasource <- "COV"
 if(datasource == "COV") {
   fig_outpath <- here("output/figures/covidtracker-figures/")
   most_recent_files <- tail(list.files(path = here("output"), "Georgia_COV"), 3)
+  
+  # For web content
+  # most_recent_files <- tail(list.files(path = here("output"), "Georgia_COV"), 3*10)[4:6]
 }
 if(datasource == "GAD") {
   fig_outpath <- here("output/figures/gadph-figures/")
@@ -21,7 +24,6 @@ if(datasource == "GAD") {
 filename_mif <- most_recent_files[grep(pattern = "mif", most_recent_files)]
 filename_sims <- most_recent_files[grep(pattern = "simulation-scenarios", most_recent_files)]
 filename_covs <- most_recent_files[grep(pattern = "simulation-covariates", most_recent_files)]
-
 
 simfile <- here('output', filename_sims)
 covarfile <- here('output', filename_covs)
@@ -43,9 +45,9 @@ pomp_data <- all_mif$pomp_data %>%
 # Summarize the simulations -----------------------------------------------
 
 sim_summs <- out_sims %>%
-  dplyr::select(SimType, Period, Date, cases, hosps, deaths) %>%
+  dplyr::select(SimType, Period, Date, cases, deaths) %>%
   rename("Acases" = cases,
-         "Bhosps" = hosps,
+         # "Bhosps" = hosps,
          "Cdeaths" = deaths) %>%
   gather(key = "Variable", value = "Value", -SimType, -Period, -Date) %>%
   group_by(SimType, Period, Date, Variable) %>%
@@ -58,9 +60,9 @@ sim_summs <- out_sims %>%
 sim_summs <- sim_summs %>%  filter(SimType != "linear_decrease_sd")
 
 cumulative_summs <- out_sims %>%
-  dplyr::select(SimType, Date, cases, hosps, deaths, rep_id) %>%
+  dplyr::select(SimType, Date, cases, deaths, rep_id) %>%
   rename("Acases" = cases,
-         "Bhosps" = hosps,
+         # "Bhosps" = hosps,
          "Cdeaths" = deaths) %>%
   gather(key = "Variable", value = "Value", -SimType, -Date, -rep_id) %>%
   arrange(SimType, Variable, rep_id, Date) %>%
@@ -121,9 +123,9 @@ fits <- sim_summs %>%
 fitreps <- out_sims %>%
   filter(SimType == "status_quo") %>%
   filter(Period == "Past") %>%
-  dplyr::select(mle_id, SimType, Date, cases, hosps, deaths) %>%
+  dplyr::select(mle_id, SimType, Date, cases, deaths) %>%
   rename("Acases" = cases,
-         "Bhosps" = hosps,
+         # "Bhosps" = hosps,
          "Cdeaths" = deaths) %>%
   gather(key = "Variable", value = "Value",-mle_id, -SimType, -Date) %>%
   group_by(Date, Variable, mle_id) %>%
@@ -145,7 +147,7 @@ ggplot() +
             alpha = 0.2) +
   geom_line(data = meanline, aes(x = Date, y = Value), color = "blue") +
   geom_line(data = medline, aes(x = Date, y = Value), color = "red") +
-  geom_point(data = pomp_data, aes(x = Date, y = Value), color = "black") +
+  geom_line(data = pomp_data, aes(x = Date, y = Value), color = "black") +
   facet_wrap(~Variable, scales = "free_y")
 
 ## Function makes and save png and html plots, and returns html plot

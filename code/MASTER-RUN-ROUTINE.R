@@ -57,10 +57,10 @@ filename_label <- paste(location,datasource,stamp,sep="_")
 
 # Parameters
 est_these_pars = c("log_beta_s", 
-                   "frac_hosp", "frac_dead", 
-                   "max_detect_par", 
+                   "frac_dead", "log_half_detect", "log_half_diag",
+                   "max_detect_par",
                    "log_sigma_dw",
-                   "log_theta_cases", "log_theta_hosps", "log_theta_deaths")
+                   "log_theta_cases", "log_theta_deaths")
 
 # Initial conditions
 # est_these_inivals = c("E1_0", "Ia1_0", "Isu1_0", "Isd1_0")
@@ -95,6 +95,20 @@ if (datasource == "GAD") {
   pomp_data <- loadcleanGDPHdata(start_date = "2020-03-01")
 }
 
+# Apply 7-day moving average to the data
+ma <- function(x) {
+  window <- 7
+  n <- c(seq.int(window), rep(window, length(x)-window))
+  xm <- ceiling(data.table::frollmean(x, n, adaptive=TRUE, na.rm = T))
+  xm[is.nan(xm)] <- NA
+  return(xm)
+}
+
+pomp_data <- pomp_data %>%
+  mutate(cases = ma(cases),
+         # hosps = ma(hosps),
+         deaths = ma(deaths))
+
 
 
 # Read in the movement data covariate table -------------------------------
@@ -121,10 +135,36 @@ stopifnot(nrow(covar_table) == nrow(pomp_data))
 # use data, covariate and parameter information to make a 
 # pomp model that's ready for fitting
 source(here("code/model-setup/makepompmodel.R"))
+# covar_table2 <- covar_table
+# covar_table2$rel_beta_change[40:80] = 0.4
 pomp_model <- makepompmodel(par_var_list = par_var_list, 
                             pomp_data = pomp_data, 
                             covar_table = covar_table)
 
+# params <- par_var_list$allparvals
+# params["log_half_detect"] <- log(12)
+# params["log_half_diag"] <- log(12)
+# # params["log_max_diag"] <- log(1)
+# 1/(1+exp(1))
+# params["max_detect_par"] <- 0.5
+# params["frac_dead"] <- 0.25
+# params["log_g_h"] = log(4/6)
+# params["log_g_c"] = log(4/3)
+# sim <- simulate(pomp_model, nsim = 1, params = params, format = "data.frame")
+# tmax <- nrow(sim)
+# par(mfrow=c(1,2))
+# plot(sim$C_new[1:tmax], type = "l")
+# lines(pomp_data$cases[1:tmax], lty = 2)
+# plot(sim$D_new[1:tmax], type = "l")
+# lines(pomp_data$deaths[1:tmax], lty = 2)
+
+# pf <- pfilter(pomp_model,Np=1000,params=params)
+# logLik(pf)
+# 
+# t <- 1:80
+# diag_speedup <- 1 + exp(params["log_max_diag"]) * exp(params["log_diag_inc_rate"])^t /  ( exp(params["log_diag_inc_rate"])^exp(params["log_half_diag"]) +   exp(params["log_diag_inc_rate"])^t    )
+# g_sd = diag_speedup*exp(params["log_g_sd"]) 
+# g_c = exp(log_g_c)/diag_speedup; 
 
 # Run the mif fitting routine ---------------------------------------------
 # turn on parallel running or not
@@ -138,7 +178,7 @@ parallel_info$num_cores <- 30  # on HPC
 # these 2 rounds are currently hard-coded into runmif
 mif_settings = list()
 mif_settings$mif_num_particles  <- c(2000, 2000)
-mif_settings$mif_num_iterations <- c(150, 150)
+mif_settings$mif_num_iterations <- c(100, 100)
 mif_settings$mif_cooling_fracs <- c(0.9, 0.7)
 mif_settings$pf_num_particles <- 5000
 mif_settings$pf_reps <- 10
@@ -192,7 +232,7 @@ source(here("code/forward-simulations/simulate_trajectories.R"))
 # Source the script run the scenarios -- saves a file this time
 source(here("code/forward-simulations/run-scenarios.R"))
 
-source(here("code/forecasting-code/format-forecasts.R"))
+# source(here("code/forecasting-code/format-forecasts.R"))
 
 
 # Make the plots for the website ------------------------------------------
