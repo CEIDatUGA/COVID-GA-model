@@ -74,7 +74,12 @@ obs_sim2 <- obs_sim2 %>%
 
 obs_sim <- bind_rows(obs_sim, obs_sim2)
 
-
+# obs_sim %>%
+#   filter(mle_id != 999) %>%
+#   mutate(rep = paste0(mle_id, .id)) %>%
+#   ggplot(aes(time, C_new, group = .id)) +
+#   geom_line() +
+#   facet_wrap(~mle_id, scales = "free_y")
 
 # Run simulations ---------------------------------------------------------
 weeks_ahead <- 6
@@ -121,13 +126,13 @@ for(i in 1:nrow(all_mles)){
   sim_msd <- sim_msdl$sims_ret %>%
     mutate(SimType = "linear_increase_sd")
   
-  sim_lsdl <- simulate_trajectories(pomp_model, start_date = "2020-03-01",
-                                  covar_action = "less_sd",
-                                  param_vals = mles, 
-                                  forecast_horizon_wks = weeks_ahead,
-                                  nsims = num_sims, obs_sim = obs)
-  sim_lsd <- sim_lsdl$sims_ret %>%
-    mutate(SimType = "linear_decrease_sd")
+  # sim_lsdl <- simulate_trajectories(pomp_model, start_date = "2020-03-01",
+  #                                 covar_action = "less_sd",
+  #                                 param_vals = mles, 
+  #                                 forecast_horizon_wks = weeks_ahead,
+  #                                 nsims = num_sims, obs_sim = obs)
+  # sim_lsd <- sim_lsdl$sims_ret %>%
+  #   mutate(SimType = "linear_decrease_sd")
   
   sim_norl <- simulate_trajectories(pomp_model, start_date = "2020-03-01",
                                    covar_action = "normal",
@@ -137,8 +142,8 @@ for(i in 1:nrow(all_mles)){
   sim_nor <- sim_norl$sims_ret %>%
     mutate(SimType = "return_normal")
   
-  all_sims <- bind_rows(sim_sq, #sim_na, #sim_minsd, 
-                        sim_msd, sim_lsd, sim_nor) %>%
+  all_sims <- bind_rows(sim_sq, #sim_na, #sim_minsd, sim_lsd,
+                        sim_msd, sim_nor) %>%
     mutate(mle_id = i,
            rep_id =  paste(.id, mle_id, sep = "-"))
   out_sims <- bind_rows(out_sims, all_sims)
@@ -152,8 +157,8 @@ for(i in 1:nrow(all_mles)){
   #   mutate(SimType = "lowest_sd") 
   cov_msd <- sim_msdl$covars %>%
     mutate(SimType = "linear_increase_sd")
-  cov_lsd <- sim_lsdl$covars %>%
-    mutate(SimType = "linear_decrease_sd")
+  # cov_lsd <- sim_lsdl$covars %>%
+  #   mutate(SimType = "linear_decrease_sd")
   cov_nor <- sim_norl$covars %>%
     mutate(SimType = "return_normal")
   all_covars <- bind_rows(cov_sq, #cov_na, #cov_minsd, 

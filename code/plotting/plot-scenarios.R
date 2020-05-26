@@ -43,19 +43,19 @@ pomp_data <- all_mif$pomp_data %>%
 # Summarize the simulations -----------------------------------------------
 
 sim_summs <- out_sims %>%
-  dplyr::select(SimType, Period, Date, C_new, H_new, D_new) %>%
-  # rename("Acases" = cases,
-  #        "Bhosps" = hosps,
-  #        "Cdeaths" = deaths) %>%
-  rename("Acases" = C_new,
+  dplyr::select(SimType, Period, Date, cases, H_new, deaths) %>%
+  rename("Acases" = cases,
          "Bhosps" = H_new,
-         "Cdeaths" = D_new) %>%
+         "Cdeaths" = deaths) %>%
+  # rename("Acases" = C_new,
+  #        "Bhosps" = H_new,
+  #        "Cdeaths" = D_new) %>%
   gather(key = "Variable", value = "Value", -SimType, -Period, -Date) %>%
   group_by(SimType, Period, Date, Variable) %>%
-  summarise(lower = ceiling(quantile(Value, 0.1)),
+  summarise(lower = ceiling(quantile(Value, 0.025)),
             ptvalue = ceiling(mean(Value)),
             # ptvalue = median(Value),
-            upper = ceiling(quantile(Value, 0.9))) %>%
+            upper = ceiling(quantile(Value, 0.975))) %>%
   ungroup()
 
 
@@ -69,15 +69,15 @@ cumulative_summs <- out_sims %>%
   group_by(SimType, Variable, rep_id) %>%
   mutate(Value = cumsum(Value)) %>%
   group_by(SimType, Variable, Date) %>%
-  summarise(min = quantile(Value, 0.1),
+  summarise(min = quantile(Value, 0.025),
             ptvalue = ceiling(mean(Value)),
-            max = quantile(Value, 0.9)) %>%
+            max = quantile(Value, 0.975)) %>%
   ungroup() %>%
   filter(Date == max(Date)) %>%
-  mutate(SimType2 = ifelse(SimType == "linear_decrease_sd", "3Relax social distancing", SimType),
+  mutate(#SimType2 = ifelse(SimType == "linear_decrease_sd", "3Relax social distancing", SimType),
          #SimType2 = ifelse(SimType == "no_intervention", "6No intervention", SimType2),
          # SimType2 = ifelse(SimType == "lowest_sd", "5Continuously improving social distancing", SimType2),
-         SimType2 = ifelse(SimType == "status_quo", "2Status quo", SimType2),
+         SimType2 = ifelse(SimType == "status_quo", "2Status quo", SimType),
          SimType2 = ifelse(SimType == "linear_increase_sd", "1Increased social distancing", SimType2),
          SimType2 = ifelse(SimType == "return_normal", "4Return to normal", SimType2)) %>%
   mutate(SimType = SimType2) %>%
@@ -118,14 +118,12 @@ fits <- sim_summs %>%
 fitreps <- out_sims %>%
   filter(SimType == "status_quo") %>%
   filter(Period == "Past") %>%
-  # dplyr::select(mle_id, SimType, Date, cases, hosps, deaths) %>%
-  # rename("Acases" = cases,
-  #        "Bhosps" = hosps,
-  #        "Cdeaths" = deaths) %>%
-  dplyr::select(mle_id, SimType, Date, C_new, H_new, D_new) %>%
-  rename("Acases" = C_new,
-         "Bhosps" = H_new,
-         "Cdeaths" = D_new) %>%
+  dplyr::select(mle_id, SimType, Date, cases, deaths) %>%
+  rename("Acases" = cases,
+         "Cdeaths" = deaths) %>%
+  # dplyr::select(mle_id, SimType, Date, C_new, D_new) %>%
+  # rename("Acases" = C_new,
+  #        "Cdeaths" = D_new) %>%
   gather(key = "Variable", value = "Value",-mle_id, -SimType, -Date) %>%
   group_by(Date, Variable, mle_id) %>%
   summarise(Value = ceiling(mean(Value))) %>%
@@ -146,8 +144,8 @@ ggplot() +
             alpha = 0.2) +
   geom_line(data = meanline, aes(x = Date, y = Value), color = "blue") +
   geom_line(data = medline, aes(x = Date, y = Value), color = "red") +
-  geom_point(data = pomp_data, aes(x = Date, y = Value), color = "black") +
-  facet_wrap(~Variable, scales = "free_y")
+  geom_line(data = pomp_data %>% filter(Variable != "Bhosps"), aes(x = Date, y = Value), color = "black") +
+  facet_wrap(~Variable, scales = "free_y", ncol = 1)
 
 ## Function makes and save png and html plots, and returns html plot
 plot_fits <- function() {
@@ -192,10 +190,10 @@ plot_fits <- function() {
 # OVERVIEW FIGURE --------------------------------------------------------------------------------
 
 all_summs <- sim_summs %>%
-  mutate(SimType2 = ifelse(SimType == "linear_decrease_sd", "3Relax social distancing", SimType),
+  mutate(#SimType2 = ifelse(SimType == "linear_decrease_sd", "3Relax social distancing", SimType),
          #SimType2 = ifelse(SimType == "no_intervention", "6No intervention", SimType2),
          # SimType2 = ifelse(SimType == "lowest_sd", "5Continuously improving social distancing", SimType2),
-         SimType2 = ifelse(SimType == "status_quo", "2Status quo", SimType2),
+         SimType2 = ifelse(SimType == "status_quo", "2Status quo", SimType),
          SimType2 = ifelse(SimType == "linear_increase_sd", "1Increased social distancing", SimType2),
          SimType2 = ifelse(SimType == "return_normal", "4Return to normal", SimType2)) %>%
   mutate(SimType = SimType2) %>%
@@ -204,7 +202,7 @@ all_summs <- sim_summs %>%
 
 scen_labs <- c("1. Increase social distancing",
                "2. Maintain social distancing (status quo)",
-               "3. Relax social distancing",
+               #"3. Relax social distancing",
                "4. Return to normal")
                # "5. What if social distancing had continued to increase?",
                #"6. What if social distancing had never begun?")
@@ -224,10 +222,10 @@ cum_summs_traj <- out_sims %>%
   group_by(SimType, Variable, Date) %>%
   summarise(ptvalue = ceiling(mean(Value))) %>%
   ungroup() %>%
-  mutate(SimType2 = ifelse(SimType == "linear_decrease_sd", "3Relax social distancing", SimType),
+  mutate(#SimType2 = ifelse(SimType == "linear_decrease_sd", "3Relax social distancing", SimType),
          #SimType2 = ifelse(SimType == "no_intervention", "6No intervention", SimType2),
          # SimType2 = ifelse(SimType == "lowest_sd", "5Continuously improving social distancing", SimType2),
-         SimType2 = ifelse(SimType == "status_quo", "2Status quo", SimType2),
+         SimType2 = ifelse(SimType == "status_quo", "2Status quo", SimType),
          SimType2 = ifelse(SimType == "linear_increase_sd", "1Increased social distancing", SimType2),
          SimType2 = ifelse(SimType == "return_normal", "4Return to normal", SimType2)) %>%
   mutate(SimType = SimType2) %>%
@@ -262,13 +260,13 @@ lp <- ggplot(cum_summs_traj, aes(x = Date, y = Cases)) +
             color = mycols['red'], size = 1, linetype = 1) +
   geom_vline(aes(xintercept = as.numeric(foredate)), color = "grey35", linetype = 2) +
   ylab("Total number of\nconfirmed cases") +
-  scale_y_continuous(labels = scales::comma, limits = c(0, 2000000)) +
+  scale_y_continuous(labels = scales::comma, limits = c(0, 20000)) +
   theme_minimal()
 
 ### plotly
 plotly_lp <- lp %>% plotly::ggplotly() %>%
   layout(showlegend=FALSE,
-         yaxis = list(range = c(0,2000000)),
+         yaxis = list(range = c(0,20000)),
          xaxis = list(showline = TRUE),
          annotations= list(yref = 'y', xref = "x", y = 750000, x = as.numeric(foredate),
                            text = format(foredate, format="%b %d"),
@@ -287,7 +285,7 @@ rp <- ggplot(cumulative_summs %>%
   scale_color_manual(values = mycols.vec) +
   ylab("") +
   xlab("") +
-  scale_y_continuous(labels = scales::comma, limits = c(0, 2000000))+
+  scale_y_continuous(labels = scales::comma, limits = c(0, 200000))+
   scale_x_discrete(labels = rep("", 6)) +
   theme_void() +
   guides(color = FALSE)
@@ -312,7 +310,7 @@ covar_scensp <- covar_scens %>%
   mutate(SimType2 = ifelse(SimType == "linear_decrease_sd", "3Relax social distancing", SimType),
          #SimType2 = ifelse(SimType == "no_intervention", "6No intervention", SimType2),
          # SimType2 = ifelse(SimType == "lowest_sd", "5Continuously improving social distancing", SimType2),
-         SimType2 = ifelse(SimType == "status_quo", "2Status quo", SimType2),
+         SimType2 = ifelse(SimType == "status_quo", "2Status quo", SimType),
          SimType2 = ifelse(SimType == "linear_increase_sd", "1Increased social distancing", SimType2),
          SimType2 = ifelse(SimType == "return_normal", "4Return to normal", SimType2)) %>%
   mutate(SimType = SimType2)
@@ -476,10 +474,10 @@ ggsave(paste0(fig_outpath, "/all-projs-line-log.png"),
 
 
 
-scen_labs <- c("1Increased social distancing" = "1. Increase\nsocial distancing",
-               "2Status quo" = "2. Maintain\nsocial distancing\n(status quo)",
-               "3Relax social distancing" = "3. Relax\nsocial distancing",
-               "4Return to normal" = "4. Return to normal")
+scen_labs <- c("1Increased social distancing" = "1. Increase social distancing",
+               "2Status quo" = "2. Maintain social distancing (status quo)",
+               #"3Relax social distancing" = "3. Relax\nsocial distancing",
+               "4Return to normal" = "3. Return to normal")
                # "5Continuously improving social distancing" = "5. What if\nsocial distancing had\ncontinued to increase?",
                #"6No intervention" = "6. What if\nsocial distancing had\nnever begun?")
 
@@ -494,7 +492,7 @@ infection_summaries <- out_sims %>%
             ptvalue = ceiling(mean(Infections)),
             upper = ceiling(quantile(Infections, 0.9))) %>%
   ungroup() %>%
-  mutate(SimType2 = ifelse(SimType == "linear_decrease_sd", "3Relax social distancing", SimType),
+  mutate(#SimType2 = ifelse(SimType == "linear_decrease_sd", "3Relax social distancing", SimType),
          #SimType2 = ifelse(SimType == "no_intervention", "6No intervention", SimType2),
          # SimType2 = ifelse(SimType == "lowest_sd", "5Continuously improving social distancing", SimType2),
          SimType2 = ifelse(SimType == "status_quo", "2Status quo", SimType2),
@@ -507,7 +505,7 @@ collabs <- c("Past", "Future")
 ggplot(infection_summaries, aes(x = Date, color = Period, fill = Period)) +
   geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2, color = NA) +
   geom_line(aes(y = ptvalue)) +
-  facet_grid(~SimType, labeller = labeller(SimType = scen_labs)) +
+  facet_grid(SimType~., labeller = labeller(SimType = scen_labs), ) +
   scale_color_brewer(type = "qual", name = NULL, labels = collabs) +
   scale_fill_brewer(type = "qual", name = NULL, labels = collabs) +
   theme_minimal() +
@@ -519,36 +517,38 @@ ggplot(infection_summaries, aes(x = Date, color = Period, fill = Period)) +
   ggtitle("Total number of infections") -> pinfectionsnat
 ggsave(paste0(fig_outpath, "/infections-trajs-nat.png"),
        plot = pinfectionsnat,
-       width = 8.5, height = 3,
+       width = 8.5, height = 8,
        units = "in", dpi = 300)
 
 # Cases
+
 pomp_data <- pomp_data %>%
   mutate(Period = "APast")
 collabs <- c("Past", "Future")
 ggplot(all_summs %>%
          filter(Variable == "Acases"),
        aes(x = Date, color = Period, fill = Period)) +
-  geom_point(data = pomp_data %>%
-               filter(Variable == "Acases") %>%
-               dplyr::select(-SimType),
-             aes(x = Date, y = Value), size = 1, color = "grey35") +
+  geom_line(data = pomp_data %>%
+              filter(Variable == "Acases") %>%
+              dplyr::select(-SimType),
+            aes(x = Date, y = Value), size = 0.25, color = "grey35", linetype = 2) +
   geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2, color = NA) +
-  geom_line(aes(y = ptvalue)) +
-  facet_grid(~SimType, labeller = labeller(SimType = scen_labs)) +
+  geom_line(aes(y = ptvalue), size = 0.25) +
+  geom_vline(aes(xintercept = foredate+0.5), color = "grey") +
+  facet_wrap(~SimType, ncol = 1, labeller = labeller(SimType = scen_labs)) +
   scale_color_brewer(type = "qual", name = NULL, labels = collabs) +
   scale_fill_brewer(type = "qual", name = NULL, labels = collabs) +
   theme_minimal() +
   ylab("Number of persons") +
   scale_y_continuous(labels = scales::comma)+
-  theme_minimal() +
+  theme_minimal(base_line_size = 0.25) +
   theme(legend.position = "top") +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  # theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
   ggtitle("New daily cases") +
-  coord_cartesian(ylim = c(0, 2000)) -> pcasesnat
+  coord_cartesian(ylim = c(0, 5000)) -> pcasesnat
 ggsave(paste0(fig_outpath, "/cases-trajs-nat.png"),
        plot = pcasesnat,
-       width = 8.5, height = 3,
+       width = 5, height = 6,
        units = "in", dpi = 300)
 
 # Hosps
@@ -561,7 +561,7 @@ ggplot(all_summs %>%
              aes(x = Date, y = Value), size = 1, color = "grey35") +
   geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2, color = NA) +
   geom_line(aes(y = ptvalue)) +
-  facet_grid(~SimType, labeller = labeller(SimType = scen_labs)) +
+  facet_grid(SimType~., labeller = labeller(SimType = scen_labs)) +
   scale_color_brewer(type = "qual", name = NULL, labels = collabs) +
   scale_fill_brewer(type = "qual", name = NULL, labels = collabs) +
   theme_minimal() +
@@ -581,26 +581,27 @@ ggsave(paste0(fig_outpath, "/hosps-trajs-nat.png"),
 ggplot(all_summs %>%
          filter(Variable == "Cdeaths"),
        aes(x = Date, color = Period, fill = Period)) +
-  geom_point(data = pomp_data %>%
+  geom_line(data = pomp_data %>%
                filter(Variable == "Cdeaths") %>%
                dplyr::select(-SimType),
-             aes(x = Date, y = Value), size = 1, color = "grey35") +
+             aes(x = Date, y = Value), size = 0.25, color = "grey35", linetype = 2) +
   geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2, color = NA) +
-  geom_line(aes(y = ptvalue)) +
-  facet_grid(~SimType, labeller = labeller(SimType = scen_labs)) +
+  geom_line(aes(y = ptvalue), size = 0.25) +
+  geom_vline(aes(xintercept = foredate+0.5), color = "grey") +
+  facet_wrap(~SimType, ncol = 1, labeller = labeller(SimType = scen_labs)) +
   scale_color_brewer(type = "qual", name = NULL, labels = collabs) +
   scale_fill_brewer(type = "qual", name = NULL, labels = collabs) +
   theme_minimal() +
   ylab("Number of persons") +
   scale_y_continuous(labels = scales::comma)+
-  theme_minimal() +
+  theme_minimal(base_line_size = 0.25) +
   theme(legend.position = "top") +
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
   ggtitle("New daily deaths") +
   coord_cartesian(ylim = c(0, 150)) -> pdeathsnat
 ggsave(paste0(fig_outpath, "/deaths-trajs-nat.png"),
        plot = pdeathsnat,
-       width = 8.5, height = 3,
+       width = 5, height = 6,
        units = "in", dpi = 300)
 
 
@@ -608,7 +609,7 @@ ggsave(paste0(fig_outpath, "/deaths-trajs-nat.png"),
 ggplot(infection_summaries, aes(x = Date, color = Period, fill = Period)) +
   geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2, color = NA) +
   geom_line(aes(y = ptvalue)) +
-  facet_grid(~SimType, labeller = labeller(SimType = scen_labs)) +
+  facet_grid(SimType~., labeller = labeller(SimType = scen_labs)) +
   scale_color_brewer(type = "qual", name = NULL, labels = collabs) +
   scale_fill_brewer(type = "qual", name = NULL, labels = collabs) +
   theme_minimal() +
@@ -634,7 +635,7 @@ ggplot(all_summs %>%
              aes(x = Date, y = Value), size = 1, color = "grey35") +
   geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2, color = NA) +
   geom_line(aes(y = ptvalue)) +
-  facet_grid(~SimType, labeller = labeller(SimType = scen_labs)) +
+  facet_grid(SimType~., labeller = labeller(SimType = scen_labs)) +
   scale_color_brewer(type = "qual", name = NULL, labels = collabs) +
   scale_fill_brewer(type = "qual", name = NULL, labels = collabs) +
   theme_minimal() +
@@ -660,7 +661,7 @@ ggplot(all_summs %>%
              aes(x = Date, y = Value), size = 1, color = "grey35") +
   geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2, color = NA) +
   geom_line(aes(y = ptvalue)) +
-  facet_grid(~SimType, labeller = labeller(SimType = scen_labs)) +
+  facet_grid(SimType~., labeller = labeller(SimType = scen_labs)) +
   scale_color_brewer(type = "qual", name = NULL, labels = collabs) +
   scale_fill_brewer(type = "qual", name = NULL, labels = collabs) +
   theme_minimal() +
@@ -686,7 +687,7 @@ ggplot(all_summs %>%
              aes(x = Date, y = Value), size = 1, color = "grey35") +
   geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2, color = NA) +
   geom_line(aes(y = ptvalue)) +
-  facet_grid(~SimType, labeller = labeller(SimType = scen_labs)) +
+  facet_grid(SimType~., labeller = labeller(SimType = scen_labs)) +
   scale_color_brewer(type = "qual", name = NULL, labels = collabs) +
   scale_fill_brewer(type = "qual", name = NULL, labels = collabs) +
   theme_minimal() +

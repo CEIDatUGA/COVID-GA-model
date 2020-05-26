@@ -85,11 +85,11 @@ pomp_data <- pomp_data %>%
 
 # Parameters
 est_these_pars = c("log_beta_s", 
-                   "frac_dead", 
-                   "max_detect_par", 
+                   "frac_dead",
                    "log_sigma_dw",
-                   "log_theta_cases", "log_theta_hosps", "log_theta_deaths")
-n_knots <- round(nrow(pomp_data) / 7)
+                   "log_theta_cases", 
+                   "log_theta_deaths")
+n_knots <- round(nrow(pomp_data) / 7)  # one knot every week
 knot_coefs <-  paste0("b", 1:n_knots)
 est_these_pars <- c(est_these_pars, knot_coefs)
 
@@ -106,7 +106,7 @@ source(here("code/model-setup/setparsvars.R"))
 # functions doesn't return anything, results are written to file
 par_var_list <- setparsvars(est_these_pars = est_these_pars, 
                             est_these_inivals = est_these_inivals, 
-                            tint = 12,  # tint = March 12 assuming March 1 start
+                            tint = 25,  # tint = days past March 1 start
                             n_knots = n_knots)  
 
 
@@ -186,7 +186,7 @@ mif_settings = list()
 mif_settings$mif_num_particles  <- c(2000, 2000)
 mif_settings$mif_num_iterations <- c(100, 100)
 mif_settings$mif_cooling_fracs <- c(0.9, 0.7)
-mif_settings$pf_num_particles <- 2000
+mif_settings$pf_num_particles <- 5000
 mif_settings$pf_reps <- 10
 
 # source the mif function
@@ -229,55 +229,6 @@ mif_res$partable_natural <- mif_explore$partable_natural
 filename_mif <- here('output', paste0(filename_label, '_mif.rds'))
 saveRDS(object = mif_res, file = filename_mif)
 
-
-# # Simulate mode to test
-# mifs <- mif_res$mif_runs
-# pfs <- mif_res$pf_runs
-# pomp_model <- mif_res$pomp_model
-# 
-# n_ini_cond = length(pfs)
-# ll = list()
-# for (i in 1:n_ini_cond) {
-#   ll1 <- sapply(pfs[[i]], logLik)
-#   ll[[i]] <- logmeanexp(ll1, se = TRUE)
-# }
-# 
-# # get estimated values for all parameters that were estimated for each run 
-# mif_coefs <- data.frame(matrix(unlist(sapply(mifs, coef)), 
-#                                nrow = length(mifs), 
-#                                byrow = T))
-# colnames(mif_coefs) <- names(coef(mifs[[1]]))  # names are the same for all mifs
-# 
-# # convert the list containing the log likelihoods for 
-# # each run stored in ll into a data frame
-# ll_df <- data.frame(matrix(unlist(ll), nrow=n_ini_cond, byrow=T))
-# 
-# # combine the ll_df and mif_coefs data frames. 
-# # Also do some cleaning/renaming
-# pf_logliks <- ll_df %>%
-#   dplyr::rename("LogLik" = X1,
-#                 "LogLik_SE" = X2) %>%
-#   dplyr::mutate(MIF_ID = 1:n()) %>%
-#   dplyr::select(MIF_ID, LogLik, LogLik_SE) %>%
-#   bind_cols(mif_coefs) %>%
-#   dplyr::arrange(-LogLik)
-# 
-# all_mles <- pf_logliks %>%
-#   filter(LogLik > (max(LogLik)-2)) %>%
-#   dplyr::select(-MIF_ID, -LogLik, -LogLik_SE)
-# 
-# sims <- matrix(NA, nrow = nrow(pomp_data), ncol = nrow(all_mles))
-# for(i in 1:nrow(all_mles)) {
-#   simsraw <- simulate(mif_res$pomp_model, nsim = 100, format = "data.frame", params = all_mles[i,])
-#   simsout <- simsraw %>%
-#     group_by(time) %>%
-#     summarise(cases = mean(cases))
-#   sims[,i] <- simsout$cases
-# }
-# matplot(sims, type = "l")
-# lines(rowMeans(sims), lwd = 5)
-# # plot(sims$cases, type  ='l', ylim = c(0,2000))
-# points(pomp_data$cases, pch = 19)
 
 # Simulate the model to predict -----------------------------------------------------
 

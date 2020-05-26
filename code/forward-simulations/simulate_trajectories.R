@@ -114,11 +114,10 @@ simulate_trajectories <- function(
       mutate(obs_cases = dat$cases,
              obs_hosps = dat$hosps,
              obs_deaths = dat$deaths) %>%
-      mutate(dif1 = (obs_cases - cases)^2,
-             dif2 = (obs_hosps - hosps)^2,
-             dif3 = (obs_deaths - deaths)^2) %>%
+      mutate(dif1 = abs(obs_cases - cases) / obs_cases,
+             dif3 = abs(obs_deaths - deaths) / obs_deaths) %>%
       group_by(.id, mle_id) %>%
-      mutate(totdif = mean(c(dif1, dif2, dif3), na.rm = TRUE)) %>%
+      mutate(totdif = sum(c(dif1, dif3), na.rm = TRUE)) %>%
       ungroup() %>%
       filter(totdif == min(totdif)) %>%
       dplyr::select(.id, mle_id)
@@ -133,16 +132,16 @@ simulate_trajectories <- function(
       filter(.id == init_id$.id) %>%
       tail(1) %>%
       dplyr::select(-time, -.id, -cases, -hosps, -deaths, -rel_beta_change) %>%
-      summarise(S_0=S,
-                E1_0=log(E1), 
-                Ia1_0=log(Ia1), 
-                Isu1_0=log(Isu1), 
-                Isd1_0=log(Isd1),
-                C1_0 = C1, 
-                H1_0 = H1,
-                R_0=R,
-                D_0 = D,
-                trendO_0 = trendO)
+      summarise(S_0=round(mean(S)),
+                E1_0=log(round(mean(E1))), 
+                Ia1_0=log(round(mean(Ia1))), 
+                Isu1_0=log(round(mean(Isu1))), 
+                Isd1_0=log(round(mean(Isd1))),
+                C1_0 = round(mean(C1)), 
+                H1_0 = round(mean(H1)),
+                R_0=round(mean(R)),
+                D_0 = round(mean(D)),
+                trendO_0 = mean(trendO))
     
     param_vals[which(names(param_vals) %in% names(inits))] <- inits
     
@@ -154,7 +153,7 @@ simulate_trajectories <- function(
       covars <- as.data.frame(covars) %>%
         mutate(time = 1:n()) %>%
         rename("rel_beta_change" = covars)
-      trend_sim <- rep(inits$trendO_0, nrow(covars))
+      trend_sim <- rep(mean(tail(trend, 30)), nrow(covars))
     }
     
     if(covar_action == "more_sd") {
@@ -168,27 +167,27 @@ simulate_trajectories <- function(
       covars <- as.data.frame(covars) %>%
         mutate(time = 1:n()) %>%
         rename("rel_beta_change" = covars)
-      trend_sim <- rep(inits$trendO_0, nrow(covars))
+      trend_sim <- rep(mean(tail(trend, 30)), nrow(covars))
     }
     
     if(covar_action == "less_sd") {
       covars <- pomp_model@covar@table["rel_beta_change", ]
       lastval <- as.numeric(tail(covars, 1))
       maxval <- 0.8
-      inc <- seq(lastval, maxval, length.out = 7)
+      inc <- seq(lastval, maxval, length.out = 14)
       final <- rep(maxval, times = (horizon - length(inc)))
       covars <- c(covars, inc, final)
       covars <- as.data.frame(covars) %>%
         mutate(time = 1:n()) %>%
         rename("rel_beta_change" = covars)
-      trend_sim <- rep(inits$trendO_0, nrow(covars))
+      trend_sim <- rep(mean(tail(trend, 30)), nrow(covars))
     }
     
     if(covar_action == "normal") {
       covars <- pomp_model@covar@table[1,]
       lastval <- as.numeric(tail(covars, 1))
       maxval <- 1
-      inc <- seq(lastval, maxval, length.out = 7)
+      inc <- seq(lastval, maxval, length.out = 14)
       final <- rep(maxval, times = (horizon - length(inc)))
       covars <- c(covars, inc, final)
       covars <- as.data.frame(covars) %>%
@@ -197,7 +196,7 @@ simulate_trajectories <- function(
       # trend_inc <- seq(inits$trendO_0, 100, length.out = 7)
       # trend_inc <- rep(inits$trendO_0, times = horizon)
       # trend_sim <- c(inits$trendO_0, trend_inc)
-      trend_sim <- rep(inits$trendO_0, nrow(covars))
+      trend_sim <- rep(mean(tail(trend, 30)), nrow(covars))
     }
     
     
@@ -233,6 +232,9 @@ simulate_trajectories <- function(
                               params = param_vals,
                               nsim = nsims, 
                               format="data.frame")
+    par(mfrow = c(2,1))
+    plot(c(pomp_data %>% filter(Variable == "Acases") %>% pull(Value), sim_out$C_new), type = "l")
+    plot(c(pomp_data %>% filter(Variable == "Cdeaths") %>% pull(Value), sim_out$D_new), type = "l")
     
     # pomp runs with internal time units, add real time to results
     end_date <- as.Date(start_date) + max(sim_out$time) - 1
