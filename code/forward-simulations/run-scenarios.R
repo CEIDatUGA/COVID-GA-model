@@ -162,7 +162,7 @@ for(i in 1:nrow(all_mles)){
   cov_nor <- sim_norl$covars %>%
     mutate(SimType = "return_normal")
   all_covars <- bind_rows(cov_sq, #cov_na, #cov_minsd, 
-                          cov_msd, cov_lsd, cov_nor)
+                          cov_msd, cov_nor)
   covar_scens <- bind_rows(covar_scens, all_covars)
 }
 

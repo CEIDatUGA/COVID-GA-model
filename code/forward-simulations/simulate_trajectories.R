@@ -232,9 +232,9 @@ simulate_trajectories <- function(
                               params = param_vals,
                               nsim = nsims, 
                               format="data.frame")
-    par(mfrow = c(2,1))
-    plot(c(pomp_data %>% filter(Variable == "Acases") %>% pull(Value), sim_out$C_new), type = "l")
-    plot(c(pomp_data %>% filter(Variable == "Cdeaths") %>% pull(Value), sim_out$D_new), type = "l")
+    # par(mfrow = c(2,1))
+    # plot(c(pomp_data %>% filter(Variable == "Acases") %>% pull(Value), sim_out$C_new), type = "l")
+    # plot(c(pomp_data %>% filter(Variable == "Cdeaths") %>% pull(Value), sim_out$D_new), type = "l")
     
     # pomp runs with internal time units, add real time to results
     end_date <- as.Date(start_date) + max(sim_out$time) - 1

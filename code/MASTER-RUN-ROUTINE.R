@@ -72,10 +72,10 @@ ma <- function(x) {
   return(xm)
 }
 
-pomp_data <- pomp_data %>%
-  mutate(cases = ma(cases),
-         hosps = ma(hosps),
-         deaths = ma(deaths))
+# pomp_data <- pomp_data %>%
+#   mutate(cases = ma(cases),
+#          hosps = ma(hosps),
+#          deaths = ma(deaths))
 
 
 # Define parameter and variable names -------------------------------------     
