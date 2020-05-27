@@ -88,6 +88,8 @@ I used a basis function approach (spline modeling) to model a latent temporal pr
 The idea is to include a smooth temporal function in the model that stands in for all unobserved processes that can reduce transmission.
 
 Here I report on models fit to the most recent data and projections from the fitted models.
+Note that we are only longer fitting to hospitalization data because it is pretty unreliable.
+Also note that we are now fitting to incident case and death data that is smoothed as a 7-day moving average.
 
 
 ## Results
@@ -119,7 +121,7 @@ ggplot(trend_df, aes(Date, Psi)) +
   geom_line(size = 1, alpha = 0.5)
 ```
 
-### Variability in other parameter values across MLE sets
+### MLE parameters estimates
 
 ```{r otherparams}
 all_mif$partable_natural %>%
@@ -139,143 +141,34 @@ all_mif$partable_natural %>%
   
 ```
 
-### Model fit to data
-The fits look pretty good, and show more of a flattening than the current GA model (though the most recent fit of the GA model is also showing more flattening).
-The grey lines are the "best" for each MLE, where "best" is defined relative to the most recent data point so that the initial conditions for projection are given priority.
-The red line is the median; the blue line is the mean.
-
-```{r fits, fig.width=8.5}
-sim_summs <- out_sims %>%
-  dplyr::select(SimType, Period, Date, cases, hosps, deaths) %>%
-  rename("Acases" = cases,
-         "Bhosps" = hosps,
-         "Cdeaths" = deaths) %>%
-  gather(key = "Variable", value = "Value", -SimType, -Period, -Date) %>%
-  group_by(SimType, Period, Date, Variable) %>%
-  summarise(lower = ceiling(quantile(Value, 0.1)),
-            ptvalue = ceiling(mean(Value)),
-            upper = ceiling(quantile(Value, 0.9))) %>%
-  ungroup()
-
-
-cumulative_summs <- out_sims %>%
-  dplyr::select(SimType, Date, cases, hosps, deaths, rep_id) %>%
-  rename("Acases" = cases,
-         "Bhosps" = hosps,
-         "Cdeaths" = deaths) %>%
-  gather(key = "Variable", value = "Value", -SimType, -Date, -rep_id) %>%
-  arrange(SimType, Variable, rep_id, Date) %>%
-  group_by(SimType, Variable, rep_id) %>%
-  mutate(Value = cumsum(Value)) %>%
-  group_by(SimType, Variable, Date) %>%
-  summarise(min = quantile(Value, 0.1),
-            ptvalue = ceiling(mean(Value)),
-            max = quantile(Value, 0.9)) %>%
-  ungroup() %>%
-  filter(Date == max(Date)) %>%
-  mutate(SimType2 = ifelse(SimType == "linear_decrease_sd", "3Relax social distancing", SimType),
-         SimType2 = ifelse(SimType == "no_intervention", "6No intervention", SimType2),
-         # SimType2 = ifelse(SimType == "lowest_sd", "5Continuously improving social distancing", SimType2),
-         SimType2 = ifelse(SimType == "status_quo", "2Status quo", SimType2),
-         SimType2 = ifelse(SimType == "linear_increase_sd", "1Increased social distancing", SimType2),
-         SimType2 = ifelse(SimType == "return_normal", "4Return to normal", SimType2)) %>%
-  mutate(SimType = SimType2) %>%
-  dplyr::select(-SimType2)
-
-
-# Make the plots ----------------------------------------------------------
-
-# mycols <- c("#a11c3e", "#5798d1", "#252525", "#319045", "#5e2b7b", "#e2908c", "#226e83")
-# mycols <- c()
-mycols <- c("#5798d1", "#319045", "#e2908c", "#a11c3e", "#226e83", "#5e2b7b", "#252525")
-names(mycols) <- c('lightblue', 'green', 'pink', 'red', 'blue', 'purple', 'black')
-
-variable_names <- c(
-  "Acases" = 'New cases',
-  "Bhosps" ='New hospitalizations',
-  "Cdeaths" = 'New deaths'
-)
-
-variable_names_cum <- c(
-  "Acases" = 'Total cases',
-  "Bhosps" ='Total hospitalizations',
-  "Cdeaths" = 'Total deaths'
-)
-
-
-# Fits to data --------------------------------------------------------------------------------
-
-end_date <- as.Date(max(pomp_data$Date))
-dates <- seq.Date(as.Date("2020-03-01"), end_date, "days")
-dates_df <- data.frame(time = c(1:length(dates)), Date = dates)
-
-fits <- sim_summs %>%
-  filter(SimType == "status_quo") %>%
-  filter(Period == "Past")
-
-# Diagnostic plot
-fitreps <- out_sims %>%
-  filter(SimType == "status_quo") %>%
-  filter(Period == "Past") %>%
-  dplyr::select(mle_id, SimType, Date, cases, hosps, deaths) %>%
-  rename("Acases" = cases,
-         "Bhosps" = hosps,
-         "Cdeaths" = deaths) %>%
-  gather(key = "Variable", value = "Value",-mle_id, -SimType, -Date) %>%
-  group_by(Date, Variable, mle_id) %>%
-  summarise(Value = ceiling(mean(Value))) %>%
-  ungroup()
-
-meanline <- fitreps %>%
-  group_by(Date, Variable) %>%
-  summarise(Value = ceiling(mean(Value))) %>%
-  ungroup()
-
-medline <- fitreps %>%
-  group_by(Date, Variable) %>%
-  summarise(Value = ceiling(median(Value))) %>%
-  ungroup()
-
-ggplot() +
-  geom_line(data = fitreps, aes(x = Date, y = Value, group = mle_id), 
-            alpha = 0.2) +
-  geom_line(data = meanline, aes(x = Date, y = Value), color = "blue") +
-  geom_line(data = medline, aes(x = Date, y = Value), color = "red") +
-  geom_point(data = pomp_data, aes(x = Date, y = Value), color = "black") +
-  facet_wrap(~Variable, scales = "free_y")
-```
 
 ### Scenario projections
-These are just some first stabs at scenario projections for the model -- we'll need to brainstorm the best approach here.
-I excluded the "what it social distancing had continued to increase?" counter-factual, for now.
+I excluded all counter-factuals.
 Here I list the scenarios and how they were implemented.
-Many ignore the latent altogether by simply repeating the final value from the observed period into the future.
 
-1. No intervention: set both $\phi$ and $\psi$ to one, such that baseline transmission is used throughout the simulation
-2. Return to normal: both $\phi$ and $\psi$ return to one over a seven day period and then remain there.
-3. All others: $\phi$ is perturbed as per the "regular" model and $\psi$ is set to the last estimated value.
+1. Increase social distancing: $\phi \rightarrow 0.3$ over the course of 7 days and remains there; $\psi$ is set to the mean of the last thirty trend estimates.
+2. Status quo: $phi$ remains at last observed value; $\psi$ is set to the mean of the last thirty trend estimates.
+3. Return to normal: both $\phi$ and $\psi$ return to one over a seven day period and then remain there.
 
-I am just going to plot the log-scale projections.
+In all the plots that follow the dashed line is the observed trajectory and the horizontal grey line marks the beginning of the projection period.
+Colored lines are model trajectories.
+Shaded regions show the 95% CI.
 
-
-```{r cases, echo=FALSE, out.width = '100%'}
-knitr::include_graphics(here("output/figures/covidtracker-figures/", "cases-trajs-log.png"))
+```{r cases, echo=FALSE, out.width = '75%'}
+knitr::include_graphics(here("output/figures/covidtracker-figures/", "cases-trajs-nat.png"))
 ```
-```{r hosps, echo=FALSE, out.width = '100%'}
-knitr::include_graphics(here("output/figures/covidtracker-figures/", "hosps-trajs-log.png"))
-```
-```{r deaths, echo=FALSE, out.width = '100%'}
-knitr::include_graphics(here("output/figures/covidtracker-figures/", "deaths-trajs-log.png"))
+```{r deaths, echo=FALSE, out.width = '75%'}
+knitr::include_graphics(here("output/figures/covidtracker-figures/", "deaths-trajs-nat.png"))
 ```
 
 ## Conclusions
-I am relatively happy and comfortable with these results.
-The one thing that gives me pause are the relatively high estimates of $\beta$ (baseline transmission).
-This results in very rapid upward trajectories under, for example, the "return to normal" scenario.
-In part, this is because I am currently assuming that the latent trend can be interpreted solely as a representation of human actions.
-Thus, returning it to 1 retrieves the "no human action" baseline tranmission rate.
-Of course, the latent trend incorporates all sorts of things!
-So simply setting it to 1 (or some other arbitrary number) reflects more than just changes in human actions/interventions.
+Overall, the fits are very good and the projections are reasonable.
+I am a little worried about the fragility of projection with the mean of the latent trend over the last 30 days.
+Time will tell on that front, but it might also be a good idea to "go back in time" and see how well that assumption works.
+I am also not super happy about the amount of uncertainty surrounding projections.
+I think the CI bands should be much wider.
+I will explore projection from a set of trajectories from initial conditions rather than choosing the best trajectory (base on match between model and observations at the final observation time) and simulating all replicates from the same initial conditions.
+Unfortunately, this procedure only led to 1 parameter set within 2 log likelihood points of the MLE.
 
 
 ---
