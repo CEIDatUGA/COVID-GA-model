@@ -71,7 +71,7 @@ pf_logliks <- ll_df %>%
   dplyr::arrange(-LogLik)
 
 all_mles <- pf_logliks %>%
-  # filter(LogLik > (max(LogLik)-2)) %>%
+  filter(LogLik > (max(LogLik)-2)) %>%
   dplyr::select(-MIF_ID, -LogLik, -LogLik_SE)
 ```
 
@@ -88,19 +88,12 @@ I used a basis function approach (spline modeling) to model a latent temporal pr
 The idea is to include a smooth temporal function in the model that stands in for all unobserved processes that can reduce transmission.
 
 Here I report on models fit to the most recent data and projections from the fitted models.
-In particular, I am interested in the following things:
-
-1. Variability in the latent trend across MLE sets
-2. Variability in other parameter values across MLE sets
-3. Model fit to data
-4. Scenario projections
 
 
 ## Results
-### Variability in the latent trend across MLE sets
+### Estimated latent trend in tranmission
 
-Variability among the estimated latent trends is high early in the time series, when cases, hospitalizations, and deaths were all low or `NA`.
-Once the data become more informative, about half way through March, the trends become more similar.
+The MLE parameters lead to the following latent trend.
 
 ```{r trends}
 dates <- unique(pomp_data$Date)
@@ -127,7 +120,8 @@ for(i in 1:nrow(betas)) {
 }
 
 trend_df <- trend_df %>%
-  mutate(`MLE set` = as.factor(`MLE set`))
+  mutate(`MLE set` = as.factor(`MLE set`)) %>%
+  filter(`MLE set` == "1")
 
 ggplot(trend_df, aes(Date, Psi, color = `MLE set`, group = `MLE set`)) +
   geom_line(size = 1, alpha = 0.5)
