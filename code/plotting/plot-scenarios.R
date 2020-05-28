@@ -545,7 +545,7 @@ ggplot(all_summs %>%
   theme(legend.position = "top") +
   # theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
   ggtitle("New daily cases") +
-  coord_cartesian(ylim = c(0, 5000)) -> pcasesnat
+  coord_cartesian(ylim = c(0, 3000)) -> pcasesnat
 ggsave(paste0(fig_outpath, "/cases-trajs-nat.png"),
        plot = pcasesnat,
        width = 5, height = 6,
