@@ -100,7 +100,8 @@ The MLE parameters lead to the following latent trend.
 ```{r trends}
 dates <- unique(pomp_data$Date)
 num_days <- length(dates)
-bases <- bspline.basis(x=1:num_days, nbasis=12, degree=3)
+n_knots <- round(num_days/10)
+bases <- bspline.basis(x=1:num_days, nbasis=n_knots, degree=3)
 
 all_mles %>%
   slice(1) %>%
