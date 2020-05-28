@@ -86,10 +86,10 @@ Nonetheless, we expect that mobility data will become less informative of transm
 
 I used a basis function approach (spline modeling) to model a latent temporal process that mediates baseline tranmission rate.
 The idea is to include a smooth temporal function in the model that stands in for all unobserved processes that can reduce transmission.
+After assessing several levels of complexity for the spline, I decided to place a "knot" every 10 days.
 
 Here I report on models fit to the most recent data and projections from the fitted models.
 Note that we are only longer fitting to hospitalization data because it is pretty unreliable.
-Also note that we are now fitting to incident case and death data that is smoothed as a 7-day moving average.
 
 
 ## Results
@@ -107,7 +107,7 @@ all_mles %>%
   slice(1) %>%
   mutate(id = 1:n()) %>%
   gather("key", "value", -id) %>%
-  filter(key %in% paste0("b", 1:12)) %>%
+  filter(key %in% paste0("b", 1:n_knots)) %>%
   dplyr::select(-id) %>%
   deframe() -> betas
 
@@ -133,8 +133,8 @@ all_mif$partable_natural %>%
   filter(LogLik >= (max(LogLik) - 2)) %>%
   mutate(beta_s = as.numeric(beta_s) * 10600000) %>%
   mutate(`MLE set` = 1:n()) %>%
-  dplyr::select(`MLE set`, LogLik, LogLik_SE, beta_s, max_detect_frac, frac_hosp, 
-                frac_dead, theta_cases, theta_hosps, theta_deaths,
+  dplyr::select(`MLE set`, LogLik, LogLik_SE, beta_s,
+                frac_dead, theta_cases, theta_deaths,
                 sigma_dw) %>%
   mutate_if(is.character,as.numeric) %>%
   kable(digits = 2)
@@ -148,8 +148,8 @@ I excluded all counter-factuals.
 Here I list the scenarios and how they were implemented.
 
 1. Increase social distancing: $\phi \rightarrow 0.3$ over the course of 7 days and remains there; $\psi$ is set to the mean of the last thirty trend estimates.
-2. Status quo: $phi$ remains at last observed value; $\psi$ is set to the mean of the last thirty trend estimates.
-3. Return to normal: both $\phi$ and $\psi$ return to one over a seven day period and then remain there.
+2. Status quo: $\phi$ remains at last observed value; $\psi$ is set to the mean of the last thirty trend estimates.
+3. Return to normal: $\phi \rightarrow 1$ over the course of 7 days and remains there; $\psi$ is set to the mean of the last thirty trend estimates.
 
 In all the plots that follow the dashed line is the observed trajectory and the horizontal grey line marks the beginning of the projection period.
 Colored lines are model trajectories.
@@ -166,10 +166,6 @@ knitr::include_graphics(here("output/figures/covidtracker-figures/", "deaths-tra
 Overall, the fits are very good and the projections are reasonable.
 I am a little worried about the fragility of projection with the mean of the latent trend over the last 30 days.
 Time will tell on that front, but it might also be a good idea to "go back in time" and see how well that assumption works.
-I am also not super happy about the amount of uncertainty surrounding projections.
-I think the CI bands should be much wider.
-I will explore projection from a set of trajectories from initial conditions rather than choosing the best trajectory (base on match between model and observations at the final observation time) and simulating all replicates from the same initial conditions.
-Unfortunately, this procedure only led to 1 parameter set within 2 log likelihood points of the MLE.
 
 
 ---
@@ -223,5 +219,26 @@ trend <- bases%*%betas
 trends <- exp(trend) / (1+exp(trend))
 plot(trends, ylab = expression(psi), xlab = "Day (since March 1)", 
      type = "l", ylim = c(0,1))
+```
+
+## Fixed parameters
+The parameters listed below are fixed at the reported values in the current analysis.
+```{r fixparams}
+all_mif$partable_natural %>%
+  t() %>%
+  as_tibble() %>%
+  slice(-1) %>%
+  mutate(LogLik = as.numeric(LogLik)) %>%
+  filter(LogLik >= (max(LogLik) - 2)) %>%
+  mutate(beta_s = as.numeric(beta_s) * 10600000) %>%
+  mutate(`MLE set` = 1:n()) %>%
+  dplyr::select(-MIF_ID, -`MLE set`, -LogLik, -LogLik_SE, -beta_s,
+                -frac_dead, -theta_cases, -theta_deaths,
+                -sigma_dw) %>%
+  mutate_if(is.character,as.numeric) %>%
+  slice(1) %>%
+  gather() %>%
+  filter(!key %in% paste0("b", 1:n_knots)) %>%
+  kable(digits = 2)
 ```
 
