@@ -89,7 +89,7 @@ est_these_pars = c("log_beta_s",
                    "log_sigma_dw",
                    "log_theta_cases", 
                    "log_theta_deaths")
-n_knots <- round(nrow(pomp_data) / 7)  # one knot every week
+n_knots <- round(nrow(pomp_data) / 10)  # one knot every 10 days
 knot_coefs <-  paste0("b", 1:n_knots)
 est_these_pars <- c(est_these_pars, knot_coefs)
 
