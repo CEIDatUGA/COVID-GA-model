@@ -1,11 +1,11 @@
 /* pomp C snippet file: tmp1 */
-/* Time: 2020-05-28 22:46:05.479 -0400 */
-/* Salt: 54850847AB5A56D393F29E1F */
+/* Time: 2020-05-29 11:10:01.871 -0400 */
+/* Salt: BF25A84D3EAA6C56F436B942 */
 
 #include <pomp.h>
 #include <R_ext/Rdynload.h>
 
-int K = 7; 
+int K = 9; 
 
 
 /* C snippet: 'rinit' */
@@ -41,16 +41,18 @@ int K = 7;
 #define b5		(__p[__parindex[29]])
 #define b6		(__p[__parindex[30]])
 #define b7		(__p[__parindex[31]])
-#define S_0		(__p[__parindex[32]])
-#define E1_0		(__p[__parindex[33]])
-#define Ia1_0		(__p[__parindex[34]])
-#define Isu1_0		(__p[__parindex[35]])
-#define Isd1_0		(__p[__parindex[36]])
-#define C1_0		(__p[__parindex[37]])
-#define H1_0		(__p[__parindex[38]])
-#define R_0		(__p[__parindex[39]])
-#define D_0		(__p[__parindex[40]])
-#define trendO_0		(__p[__parindex[41]])
+#define b8		(__p[__parindex[32]])
+#define b9		(__p[__parindex[33]])
+#define S_0		(__p[__parindex[34]])
+#define E1_0		(__p[__parindex[35]])
+#define Ia1_0		(__p[__parindex[36]])
+#define Isu1_0		(__p[__parindex[37]])
+#define Isd1_0		(__p[__parindex[38]])
+#define C1_0		(__p[__parindex[39]])
+#define H1_0		(__p[__parindex[40]])
+#define R_0		(__p[__parindex[41]])
+#define D_0		(__p[__parindex[42]])
+#define trendO_0		(__p[__parindex[43]])
 #define rel_beta_change		(__covars[__covindex[0]])
 #define trend_sim		(__covars[__covindex[1]])
 #define fit		(__covars[__covindex[2]])
@@ -61,6 +63,8 @@ int K = 7;
 #define seas_5		(__covars[__covindex[7]])
 #define seas_6		(__covars[__covindex[8]])
 #define seas_7		(__covars[__covindex[9]])
+#define seas_8		(__covars[__covindex[10]])
+#define seas_9		(__covars[__covindex[11]])
 #define S		(__x[__stateindex[0]])
 #define E1		(__x[__stateindex[1]])
 #define E2		(__x[__stateindex[2]])
@@ -168,6 +172,8 @@ void __pomp_rinit (double *__x, const double *__p, double t, const int *__statei
 #undef b5
 #undef b6
 #undef b7
+#undef b8
+#undef b9
 #undef S_0
 #undef E1_0
 #undef Ia1_0
@@ -188,6 +194,8 @@ void __pomp_rinit (double *__x, const double *__p, double t, const int *__statei
 #undef seas_5
 #undef seas_6
 #undef seas_7
+#undef seas_8
+#undef seas_9
 #undef S
 #undef E1
 #undef E2
@@ -253,16 +261,18 @@ void __pomp_rinit (double *__x, const double *__p, double t, const int *__statei
 #define b5		(__p[__parindex[29]])
 #define b6		(__p[__parindex[30]])
 #define b7		(__p[__parindex[31]])
-#define S_0		(__p[__parindex[32]])
-#define E1_0		(__p[__parindex[33]])
-#define Ia1_0		(__p[__parindex[34]])
-#define Isu1_0		(__p[__parindex[35]])
-#define Isd1_0		(__p[__parindex[36]])
-#define C1_0		(__p[__parindex[37]])
-#define H1_0		(__p[__parindex[38]])
-#define R_0		(__p[__parindex[39]])
-#define D_0		(__p[__parindex[40]])
-#define trendO_0		(__p[__parindex[41]])
+#define b8		(__p[__parindex[32]])
+#define b9		(__p[__parindex[33]])
+#define S_0		(__p[__parindex[34]])
+#define E1_0		(__p[__parindex[35]])
+#define Ia1_0		(__p[__parindex[36]])
+#define Isu1_0		(__p[__parindex[37]])
+#define Isd1_0		(__p[__parindex[38]])
+#define C1_0		(__p[__parindex[39]])
+#define H1_0		(__p[__parindex[40]])
+#define R_0		(__p[__parindex[41]])
+#define D_0		(__p[__parindex[42]])
+#define trendO_0		(__p[__parindex[43]])
 #define rel_beta_change		(__covars[__covindex[0]])
 #define trend_sim		(__covars[__covindex[1]])
 #define fit		(__covars[__covindex[2]])
@@ -273,6 +283,8 @@ void __pomp_rinit (double *__x, const double *__p, double t, const int *__statei
 #define seas_5		(__covars[__covindex[7]])
 #define seas_6		(__covars[__covindex[8]])
 #define seas_7		(__covars[__covindex[9]])
+#define seas_8		(__covars[__covindex[10]])
+#define seas_9		(__covars[__covindex[11]])
 #define S		(__x[__stateindex[0]])
 #define E1		(__x[__stateindex[1]])
 #define E2		(__x[__stateindex[2]])
@@ -544,6 +556,8 @@ void __pomp_stepfn (double *__x, const double *__p, const int *__stateindex, con
 #undef b5
 #undef b6
 #undef b7
+#undef b8
+#undef b9
 #undef S_0
 #undef E1_0
 #undef Ia1_0
@@ -564,6 +578,8 @@ void __pomp_stepfn (double *__x, const double *__p, const int *__stateindex, con
 #undef seas_5
 #undef seas_6
 #undef seas_7
+#undef seas_8
+#undef seas_9
 #undef S
 #undef E1
 #undef E2
@@ -629,16 +645,18 @@ void __pomp_stepfn (double *__x, const double *__p, const int *__stateindex, con
 #define b5		(__p[__parindex[29]])
 #define b6		(__p[__parindex[30]])
 #define b7		(__p[__parindex[31]])
-#define S_0		(__p[__parindex[32]])
-#define E1_0		(__p[__parindex[33]])
-#define Ia1_0		(__p[__parindex[34]])
-#define Isu1_0		(__p[__parindex[35]])
-#define Isd1_0		(__p[__parindex[36]])
-#define C1_0		(__p[__parindex[37]])
-#define H1_0		(__p[__parindex[38]])
-#define R_0		(__p[__parindex[39]])
-#define D_0		(__p[__parindex[40]])
-#define trendO_0		(__p[__parindex[41]])
+#define b8		(__p[__parindex[32]])
+#define b9		(__p[__parindex[33]])
+#define S_0		(__p[__parindex[34]])
+#define E1_0		(__p[__parindex[35]])
+#define Ia1_0		(__p[__parindex[36]])
+#define Isu1_0		(__p[__parindex[37]])
+#define Isd1_0		(__p[__parindex[38]])
+#define C1_0		(__p[__parindex[39]])
+#define H1_0		(__p[__parindex[40]])
+#define R_0		(__p[__parindex[41]])
+#define D_0		(__p[__parindex[42]])
+#define trendO_0		(__p[__parindex[43]])
 #define rel_beta_change		(__covars[__covindex[0]])
 #define trend_sim		(__covars[__covindex[1]])
 #define fit		(__covars[__covindex[2]])
@@ -649,6 +667,8 @@ void __pomp_stepfn (double *__x, const double *__p, const int *__stateindex, con
 #define seas_5		(__covars[__covindex[7]])
 #define seas_6		(__covars[__covindex[8]])
 #define seas_7		(__covars[__covindex[9]])
+#define seas_8		(__covars[__covindex[10]])
+#define seas_9		(__covars[__covindex[11]])
 #define S		(__x[__stateindex[0]])
 #define E1		(__x[__stateindex[1]])
 #define E2		(__x[__stateindex[2]])
@@ -729,6 +749,8 @@ void __pomp_rmeasure (double *__y, const double *__x, const double *__p, const i
 #undef b5
 #undef b6
 #undef b7
+#undef b8
+#undef b9
 #undef S_0
 #undef E1_0
 #undef Ia1_0
@@ -749,6 +771,8 @@ void __pomp_rmeasure (double *__y, const double *__x, const double *__p, const i
 #undef seas_5
 #undef seas_6
 #undef seas_7
+#undef seas_8
+#undef seas_9
 #undef S
 #undef E1
 #undef E2
@@ -817,16 +841,18 @@ void __pomp_rmeasure (double *__y, const double *__x, const double *__p, const i
 #define b5		(__p[__parindex[29]])
 #define b6		(__p[__parindex[30]])
 #define b7		(__p[__parindex[31]])
-#define S_0		(__p[__parindex[32]])
-#define E1_0		(__p[__parindex[33]])
-#define Ia1_0		(__p[__parindex[34]])
-#define Isu1_0		(__p[__parindex[35]])
-#define Isd1_0		(__p[__parindex[36]])
-#define C1_0		(__p[__parindex[37]])
-#define H1_0		(__p[__parindex[38]])
-#define R_0		(__p[__parindex[39]])
-#define D_0		(__p[__parindex[40]])
-#define trendO_0		(__p[__parindex[41]])
+#define b8		(__p[__parindex[32]])
+#define b9		(__p[__parindex[33]])
+#define S_0		(__p[__parindex[34]])
+#define E1_0		(__p[__parindex[35]])
+#define Ia1_0		(__p[__parindex[36]])
+#define Isu1_0		(__p[__parindex[37]])
+#define Isd1_0		(__p[__parindex[38]])
+#define C1_0		(__p[__parindex[39]])
+#define H1_0		(__p[__parindex[40]])
+#define R_0		(__p[__parindex[41]])
+#define D_0		(__p[__parindex[42]])
+#define trendO_0		(__p[__parindex[43]])
 #define rel_beta_change		(__covars[__covindex[0]])
 #define trend_sim		(__covars[__covindex[1]])
 #define fit		(__covars[__covindex[2]])
@@ -837,6 +863,8 @@ void __pomp_rmeasure (double *__y, const double *__x, const double *__p, const i
 #define seas_5		(__covars[__covindex[7]])
 #define seas_6		(__covars[__covindex[8]])
 #define seas_7		(__covars[__covindex[9]])
+#define seas_8		(__covars[__covindex[10]])
+#define seas_9		(__covars[__covindex[11]])
 #define S		(__x[__stateindex[0]])
 #define E1		(__x[__stateindex[1]])
 #define E2		(__x[__stateindex[2]])
@@ -937,6 +965,8 @@ void __pomp_dmeasure (double *__lik, const double *__y, const double *__x, const
 #undef b5
 #undef b6
 #undef b7
+#undef b8
+#undef b9
 #undef S_0
 #undef E1_0
 #undef Ia1_0
@@ -957,6 +987,8 @@ void __pomp_dmeasure (double *__lik, const double *__y, const double *__x, const
 #undef seas_5
 #undef seas_6
 #undef seas_7
+#undef seas_8
+#undef seas_9
 #undef S
 #undef E1
 #undef E2
