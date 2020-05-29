@@ -27,7 +27,7 @@ library(pomp)
 most_recent_files <- tail(list.files(path = here("output"), "Georgia_COV"),3)
 filename_sims <- most_recent_files[grep(pattern = "simulation-scenarios", most_recent_files)]
 
-filename_sims <- "Georgia_COV_2020-05-11_simulation-scenarios.rds"  # for specific runs
+# filename_sims <- "Georgia_COV_2020-05-11_simulation-scenarios.rds"  # for specific runs
 
 all_sims <- readRDS(here("output", filename_sims))
 forecasts <- all_sims %>%
@@ -37,6 +37,7 @@ forecasts <- all_sims %>%
   dplyr::select(Rep, Date, cases, deaths) %>%
   arrange(Rep, Date) %>%
   as.data.frame()
+
 # ggplot(forecasts, aes(x = Date, y = deaths)) +
 #   geom_line(aes(group = Rep), alpha = 0.2)
 

@@ -203,7 +203,7 @@ all_summs <- sim_summs %>%
 scen_labs <- c("1. Increase social distancing",
                "2. Maintain social distancing (status quo)",
                #"3. Relax social distancing",
-               "4. Return to normal")
+               "3. Return to normal")
                # "5. What if social distancing had continued to increase?",
                #"6. What if social distancing had never begun?")
 
@@ -495,7 +495,7 @@ infection_summaries <- out_sims %>%
   mutate(#SimType2 = ifelse(SimType == "linear_decrease_sd", "3Relax social distancing", SimType),
          #SimType2 = ifelse(SimType == "no_intervention", "6No intervention", SimType2),
          # SimType2 = ifelse(SimType == "lowest_sd", "5Continuously improving social distancing", SimType2),
-         SimType2 = ifelse(SimType == "status_quo", "2Status quo", SimType2),
+         SimType2 = ifelse(SimType == "status_quo", "2Status quo", SimType),
          SimType2 = ifelse(SimType == "linear_increase_sd", "1Increased social distancing", SimType2),
          SimType2 = ifelse(SimType == "return_normal", "4Return to normal", SimType2)) %>%
   mutate(SimType = SimType2) %>%
@@ -505,7 +505,7 @@ collabs <- c("Past", "Future")
 ggplot(infection_summaries, aes(x = Date, color = Period, fill = Period)) +
   geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2, color = NA) +
   geom_line(aes(y = ptvalue)) +
-  facet_grid(SimType~., labeller = labeller(SimType = scen_labs), ) +
+  facet_grid(~SimType, labeller = labeller(SimType = scen_labs), ) +
   scale_color_brewer(type = "qual", name = NULL, labels = collabs) +
   scale_fill_brewer(type = "qual", name = NULL, labels = collabs) +
   theme_minimal() +
@@ -517,7 +517,7 @@ ggplot(infection_summaries, aes(x = Date, color = Period, fill = Period)) +
   ggtitle("Total number of infections") -> pinfectionsnat
 ggsave(paste0(fig_outpath, "/infections-trajs-nat.png"),
        plot = pinfectionsnat,
-       width = 8.5, height = 8,
+       width = 8.5, height = 4,
        units = "in", dpi = 300)
 
 # Cases
