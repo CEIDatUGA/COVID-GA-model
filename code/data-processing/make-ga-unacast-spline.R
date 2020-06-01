@@ -40,5 +40,4 @@ pred <- predict(mod)
 covar_table <- data.frame(Date = unacast$Date,
                           time = pred$x,
                           rel_beta_change = pred$y)
-saveRDS(covar_table, file = paste("data/rel-beta-change-covar-", #main title
-                                  gsub("-", "", Sys.Date()), ".rds", sep = "")) #date
+saveRDS(covar_table, file = paste("data/rel-beta-change-covar.rds"))
