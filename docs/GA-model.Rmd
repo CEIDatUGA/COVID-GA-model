@@ -1,6 +1,9 @@
 ---
 title: "A stochastic model for the transmission of 2019-nCov in Georgia, USA"
-author: "John M. Drake, Andreas Handel, and Andrew T. Tredennick"
+author: 
+  - John M. Drake^[Odum School of Ecology and Center for the Ecology of Infectious Diseases, University of Georgia]
+  - Andreas Handel^[Department of Epidemiology and Biostatistics and Center for the Ecology of Infectious Diseases, University of Georgia]
+  - Andrew T. Tredennick^[Western EcoSystems Technology, Inc.]
 date: "`r format(Sys.time(), '%B %d, %Y')`"
 header-includes:
   - \usepackage{amsmath}
@@ -15,6 +18,13 @@ knitr::opts_chunk$set(include=TRUE, echo=FALSE, warning=FALSE, message=FALSE)
 library(here)
 library(tidyverse)
 ```
+
+---
+
+### Reproducible Materials
+All code and data needed to reproduce our results can be found in our public GitHub repository: https://github.com/CEIDatUGA/COVID-GA-model.
+
+---
 
 # Introduction
 
@@ -128,6 +138,13 @@ $$
 where $K$ is the number of knots, $\mathbf{q}$ is a vector of spline coefficients (to be fitted), and $\mathbf{\xi}$ is a matrix basis functions.
 We define the number of knots ($K$) as the number of days in the data set divided by 10 (so, one knot every 10 days).
 Note the logit transformation to go from the linear scale to the 0 - 1 scale.
+
+Interventions enter our model in three ways.
+The first is through the augmentation of $\beta$ by the mobility covariate ($\phi$) and the latent trend process ($\psi$).
+The second is through an increase in the fraction of exposed individuals that are detected and flow into the *Isd* compartments.
+This fraction ($q$) starts at a low level of 0.1 and then, starting on March 30, slowly ramps up to 0.4.
+Third, the time to diagnosis ($s$) decreases over time, ramping up starting on March 30.
+The interventions on $q$ and $s$ are applied with a sigmoid function, rather than a linear change over time.
 
 ## Model Fitting
 We fit the model using Maximization by Iterated particle Filtering (MIF).
@@ -308,4 +325,51 @@ ggplot() +
   facet_wrap(~Variable, scales = "free_y", ncol = 1) +
   ylab("Number of new reports") +
   theme_minimal(base_size = 14, base_line_size = 0.5)
+```
+
+## Model Projections
+
+### Cumulative infections over time
+
+The following plot shows the estimated total number of infections for the three scenarios. Shaded regions represent the area within which 95% of the model simulations fall.
+
+<!-- #### Natural scale -->
+
+```{r infections}
+knitr::include_graphics(here("output/figures/covidtracker-figures",'infections-trajs-nat.png'))
+```
+
+<!-- #### Log scale -->
+
+<!-- ```{r infectionsl} -->
+<!-- knitr::include_graphics(here("output/figures/covidtracker-figures",'infections-trajs-log.png')) -->
+<!-- ``` -->
+
+### Cumulative cases, hospitalizations and deaths (6 week projection)
+
+The following plot shows the range (95% of simulations fall in this range) of projected cumulative number of recorded cases, hospitalizations, and deaths six weeks from today for each scenario.
+The white dots indicate the median projection across simulations. 
+Note that all three measures of epidemic size are believed to be under-reported, so the true epidemic size is likely to be considerably larger (e.g., the true number of cumulative infections is likely to be 10 to 12 times larger than the numbers reported in these figures).
+
+```{r cumsums}
+knitr::include_graphics(here("output/figures/covidtracker-figures",'cumulative-forecasts.png'))
+```
+
+### Daily cases, hospitalizations and deaths over time (mean of simulations)
+
+```{r allnl}
+knitr::include_graphics(here("output/figures/covidtracker-figures",'all-projs-line-nat.png'))
+```
+
+### Daily cases and deaths over time (data, model fit, projections)
+
+The following plots show the observed and projected daily number of recorded cases and deaths for the three scenarios. Dashed line represents the observed data. The green line is our model's fit to the observed data, and the purple line is the mean projection. Shaded regions represent the area within which 95% of the model simulations fall.
+
+```{r cases}
+knitr::include_graphics(here("output/figures/covidtracker-figures",'cases-trajs-nat.png'))
+```
+
+
+```{r deaths}
+knitr::include_graphics(here("output/figures/covidtracker-figures",'deaths-trajs-nat.png'))
 ```
