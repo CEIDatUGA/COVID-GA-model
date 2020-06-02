@@ -22,7 +22,7 @@ myargument <- 1
 # so we can run various scripts independently 
 # these libraries are needed by various scripts
 library(here)
-
+library(pomp)
 
 # Set state, data source and a time-stamp variable -------------------------     
 
@@ -50,39 +50,6 @@ stamp <- paste(lubridate::date(tm),
 filename_label <- paste(location,datasource,stamp,sep="_") 
 
 
-# Define parameter and variable names -------------------------------------     
-# define parameters to be estimated
-# is passed to setparsvars function. 
-# If set to "all", all params are estimated
-
-# Parameters
-est_these_pars = c("log_beta_s", 
-                   "frac_dead", "log_half_detect", "log_half_diag",
-                   "max_detect_par",
-                   "log_sigma_dw",
-                   "log_theta_cases", "log_theta_deaths")
-
-# Initial conditions
-# est_these_inivals = c("E1_0", "Ia1_0", "Isu1_0", "Isd1_0")
-est_these_inivals = ""  # no initial conditions
-
-# source function which assigns values to variables and initial conditions
-# specifies parameters that are being fitted
-source(here("code/model-setup/setparsvars.R"))
-
-# run function that sets variables and parameters 
-# functions doesn't return anything, results are written to file
-par_var_list <- setparsvars(est_these_pars = est_these_pars, 
-                            est_these_inivals = est_these_inivals, 
-                            tint = 12)  # tint = March 12 assuming March 1 start
-
-
-# Set priors --------------------------------------------------------------     
-# needs results from setparsvars 
-source(here("code/model-setup/setpriors.R"))
-prior_dens <- setpriors(par_var_list)  # for ABC and pMCMC routines
-
-
 # Run data cleaning script. Return data ready for pomp --------------------
 
 source(here("code/data-processing/loadcleanCTdata.R"))
@@ -95,20 +62,58 @@ if (datasource == "GAD") {
   pomp_data <- loadcleanGDPHdata(start_date = "2020-03-01")
 }
 
+
 # Apply 7-day moving average to the data
 ma <- function(x) {
   window <- 7
   n <- c(seq.int(window), rep(window, length(x)-window))
   xm <- ceiling(data.table::frollmean(x, n, adaptive=TRUE, na.rm = T))
-  xm[is.nan(xm)] <- NA
+  xm[is.nan(xm)] <- NA 
   return(xm)
 }
 
-pomp_data <- pomp_data %>%
-  mutate(cases = ma(cases),
-         # hosps = ma(hosps),
-         deaths = ma(deaths))
+# pomp_data <- pomp_data %>%
+#   mutate(cases = ma(cases),
+#          hosps = ma(hosps),
+#          deaths = ma(deaths))
 
+
+# Define parameter and variable names -------------------------------------     
+# define parameters to be estimated
+# is passed to setparsvars function. 
+# If set to "all", all params are estimated
+
+# Parameters
+est_these_pars = c("log_beta_s", 
+                   "frac_dead",
+                   "log_sigma_dw",
+                   "log_theta_cases", 
+                   "log_theta_deaths")
+n_knots <- round(nrow(pomp_data) / 10)  # one knot every 10 days
+knot_coefs <-  paste0("b", 1:n_knots)
+est_these_pars <- c(est_these_pars, knot_coefs)
+
+# Initial conditions
+# est_these_inivals = c("E1_0", "Ia1_0", "Isu1_0", "Isd1_0")
+est_these_inivals = ""  # no initial conditions
+
+
+# source function which assigns values to variables and initial conditions
+# specifies parameters that are being fitted
+source(here("code/model-setup/setparsvars.R"))
+
+# run function that sets variables and parameters 
+# functions doesn't return anything, results are written to file
+par_var_list <- setparsvars(est_these_pars = est_these_pars, 
+                            est_these_inivals = est_these_inivals, 
+                            tint = 25,  # tint = days past March 1 start
+                            n_knots = n_knots)  
+
+
+# Set priors --------------------------------------------------------------     
+# needs results from setparsvars 
+# source(here("code/model-setup/setpriors.R"))
+# prior_dens <- setpriors(par_var_list)  # for ABC and pMCMC routines
 
 
 # Read in the movement data covariate table -------------------------------
@@ -127,8 +132,24 @@ covar_table <- covar_table %>%
   # truncate the upper bound at 1, just rounding, really
   mutate(rel_beta_change = ifelse(rel_beta_change > 1, 1, rel_beta_change))
 
+
+covar = covariate_table(
+  t = pomp_data$time,
+  seas = bspline.basis(
+    x=t,
+    nbasis=n_knots,
+    degree=3
+  ),
+  rel_beta_change = as.matrix(covar_table$rel_beta_change),
+  trend_sim = as.matrix(rep(100, times = nrow(covar_table))),
+  fit = 1,
+  times="t",
+  order = "constant"
+)
+
+
 # Make sure that the covariate and data times match
-stopifnot(nrow(covar_table) == nrow(pomp_data))
+# stopifnot(nrow(covar_table) == nrow(pomp_data))
 
 
 # Make a pomp model -------------------------------------------------------
@@ -139,32 +160,18 @@ source(here("code/model-setup/makepompmodel.R"))
 # covar_table2$rel_beta_change[40:80] = 0.4
 pomp_model <- makepompmodel(par_var_list = par_var_list, 
                             pomp_data = pomp_data, 
-                            covar_table = covar_table)
+                            covar_table = covar,
+                            n_knots = n_knots)
 
-# params <- par_var_list$allparvals
-# params["log_half_detect"] <- log(12)
-# params["log_half_diag"] <- log(12)
-# # params["log_max_diag"] <- log(1)
-# 1/(1+exp(1))
-# params["max_detect_par"] <- 0.5
-# params["frac_dead"] <- 0.25
-# params["log_g_h"] = log(4/6)
-# params["log_g_c"] = log(4/3)
-# sim <- simulate(pomp_model, nsim = 1, params = params, format = "data.frame")
-# tmax <- nrow(sim)
-# par(mfrow=c(1,2))
-# plot(sim$C_new[1:tmax], type = "l")
-# lines(pomp_data$cases[1:tmax], lty = 2)
-# plot(sim$D_new[1:tmax], type = "l")
-# lines(pomp_data$deaths[1:tmax], lty = 2)
+# Simulate from the model as a test
+# simparams <- par_var_list$allparvals
+# betas <- rnorm(n_knots, 0, 10)
+# betanames <- paste0("b", 1:n_knots)
+# simparams[betanames] <- betas
+# sims <- simulate(pomp_model, nsim = 1,
+#                  params = simparams, format="data.frame")
+# plot(sims$cases)
 
-# pf <- pfilter(pomp_model,Np=1000,params=params)
-# logLik(pf)
-# 
-# t <- 1:80
-# diag_speedup <- 1 + exp(params["log_max_diag"]) * exp(params["log_diag_inc_rate"])^t /  ( exp(params["log_diag_inc_rate"])^exp(params["log_half_diag"]) +   exp(params["log_diag_inc_rate"])^t    )
-# g_sd = diag_speedup*exp(params["log_g_sd"]) 
-# g_c = exp(log_g_c)/diag_speedup; 
 
 # Run the mif fitting routine ---------------------------------------------
 # turn on parallel running or not
@@ -210,7 +217,7 @@ mif_res$filename_label <- filename_label
 # currently returns a trace plot figure (as ggplot object)
 # and 2 parameter tables. optional if turned on a likelihood slice plot
 source(here("code/result-exploration/exploremifresults.R"))
-mif_explore <- exploremifresults(mif_res = mif_res)
+mif_explore <- exploremifresults(mif_res = mif_res, n_knots = n_knots)
 
 #add results from mif exploration to mif_res object
 mif_res$traceplot <- mif_explore$traceplot
@@ -226,13 +233,13 @@ saveRDS(object = mif_res, file = filename_mif)
 
 # Simulate the model to predict -----------------------------------------------------
 
-# Source the function to simulate trajectories and scenarios
-source(here("code/forward-simulations/simulate_trajectories.R"))
-
-# Source the script run the scenarios -- saves a file this time
+# # Source the function to simulate trajectories and scenarios
+# source(here("code/forward-simulations/simulate_trajectories.R"))
+# 
+# # Source the script run the scenarios -- saves a file this time
 source(here("code/forward-simulations/run-scenarios.R"))
 
-# source(here("code/forecasting-code/format-forecasts.R"))
+source(here("code/forecasting-code/format-forecasts.R"))
 
 
 # Make the plots for the website ------------------------------------------

@@ -1,7 +1,7 @@
 # exploremifresults.R
 # This function takes results produced by run-mif for exploration/plotting
 
-exploremifresults <- function(mif_res)
+exploremifresults <- function(mif_res, n_knots)
 {
   
   #  ---------------------------------------------------------
@@ -150,13 +150,15 @@ exploremifresults <- function(mif_res)
                    "logis", "logis", "logis", "logis", #trans
                    "loginv", "loginv", "loginv", "loginv", "loginv", "loginv", #gi
                    "logplus", "log", "log", #diag
-                   "logis", "log", "log",  #detect
+                   "logis", "log", "log", "log",  #detect
                    "logis", "logis", "logis", #frac
                    "log", "log", "log", #theta
                    "log", #sigma
+                   rep("lin", n_knots),  # beta spline coefficients
                    "lin", #S0 
                    "log", "log", "log","log", #E/Ia/Isu/Isd
-                   "lin", "lin", "lin", "lin" #C/H/R/D
+                   "lin", "lin", "lin", "lin", #C/H/R/D
+                   "lin" #trendO
                    )
   
   # do this for all parameters, even fixed ones
@@ -168,18 +170,22 @@ exploremifresults <- function(mif_res)
   
   coef_natural_df <- transform_params(coef_all, param_trans)
   
+  spline_names <- paste0("b", 1:n_knots)
+  
   # also give some parameters new names to avoid confusion
   param_nat_names <- c("beta_s", 
                        "frac_trans_e", "frac_trans_a", "frac_trans_c", "frac_trans_h", 
                        "time_e", "time_a", "time_su", "time_sd", "time_c", "time_h", 
                        "max_diag_factor", "diag_rampup", "t_half_diag", 
-                       "max_detect_frac", "detect_rampup", "t_half_detect",
+                       "max_detect_frac", "detect_rampup", "t_half_detect", "base_detect_frac",
                        "frac_asym", "frac_hosp", "frac_dead", 
                       "theta_cases", "theta_hosps", "theta_deaths", 
                       "sigma_dw", 
+                      spline_names,
                       "S_0",
                       "E1_0", "Ia1_0", "Isu1_0", "Isd1_0",
-                      "C1_0","H1_0","R_0","D_0")
+                      "C1_0","H1_0","R_0","D_0",
+                      "trend_start")
   
   colnames(coef_natural_df) <- param_nat_names
   
