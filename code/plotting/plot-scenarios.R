@@ -99,6 +99,8 @@ mycols <- c("#5798d1", "#319045", "#e2908c", "#a11c3e", "#226e83", "#5e2b7b", "#
 names(mycols) <- c('lightblue', 'green', 'pink', 'red', 'blue', 'purple', 'black')
 mycols.vec <- mycols
 names(mycols.vec) <- NULL
+mycols.vec.filt <- mycols[c('lightblue','green','red')]
+names(mycols.vec.filt) <- NULL
 
 variable_names <- c(
   "Acases" = 'New cases',
@@ -298,8 +300,6 @@ plotly_lp <- lp %>% plotly::ggplotly() %>%
          )
 
 ## range subplot
-mycols.vec <- mycols[c('lightblue','green','red')]
-names(mycols.vec) <- NULL
 
 rp <- ggplot(cumulative_summs %>%
                filter(Variable == "Acases"),
