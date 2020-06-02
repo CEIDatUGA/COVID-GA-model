@@ -16,7 +16,7 @@ library(here)
 library(tidyverse)
 ```
 
-## Introduction
+# Introduction
 
 The epidemiology of the 2019-nCov is poorly understood.
 Here we develop a model for the trajectory of 2019-nCov during the early-to-middle stages of transmission in Georgia, USA.
@@ -39,6 +39,8 @@ The pandemic of 2019-nCov is still evolving and information that was used in the
 Accordingly, these results are preliminary, provisional, and subject to change.
 These results have not been peer-reviewed, but have been prepared to a professional standard with the intention of providing useful interpretation of a rapidly developing event. 
 
+# Methods
+
 ## Data
 
 We fit the model to incident case and death reports for Georgia, as collated by <a href="covidtracking.com" target="_blank">The COVID Tracking Project</a>.
@@ -56,7 +58,7 @@ data <- readRDS(here(fullpath))$pomp_data %>%
   gather("key", "value", -Date)
 
 ggplot(data, aes(x = Date, y = value)) +
-  geom_line(size = 1) +
+  geom_col(size = 1) +
   ylab("Number of persons") +
   facet_wrap(~key, scales = "free", nrow = 2) +
   theme_minimal(base_size = 14, base_line_size = 0.5)
@@ -148,3 +150,162 @@ For the second round of MIF, which simply continues from where the first round s
 We then computed the log likelihood of the 30 final MIF parameter sets (i.e., parameter sets collected after 300 MIF iterations) as the log of the mean likelihoods of 10 replicate particle filters with 5,000 particles each.
 At this stage, we assume the parameter set with highest log likelihood is the MLE.
 We use all parameter sets with log likelihoods within 2 of the maximum when forecasting.
+
+## Model Assessment
+We assess our model in two ways.
+First, we calculate the mean absolute error (MAE) of the model by comparing in-sample predictions to the observed data.
+To do so, we simulate 100 trajectories from the model from all parameter sets within 2 points of the maximum log likelihood.
+We then calculate the MAE for each data point across the replicate simulations and then take the average MAE over the time series.
+We do this independently for case and death data.
+
+Second, we evaluate the forecast performance of our model by comparing projections to new data.
+We make benchmark forecasts every Monday that are compared to new data as they emerge.
+This allows us to evaluate forecasts over a range of horizons.
+
+## Projection Scenarios
+We use the fitted model to make projections under three scenarios.
+Under all scenarios, we assume that the latent trend is equal to its average value over the last thirty days.
+This means we are assuming that preventative measures unrelated to human mobility remain constant at the levels observed over the last 30 days.
+
+1. **Status quo**: We assume that social distancing remains at the level of the last observation at $t = T$, meaning that all future $\phi$ equal $\phi(T)$.
+2. **Increased social distancing**: We assume that social distancing increases such that $\phi \rightarrow 0.3$ linearly over the course of seven days and then remains at 0.3.
+3. **Return to normal**: We assume that social distancing decreases such that $\phi \rightarrow 1$ linearly over the course of seven days and then remains at 1.
+
+Each scenario is simulated 100 times for each parameter set that is within 2 points of the maximum log likelihood parameter set.
+Initial conditions are determined by simulating 100 trajectories over the observation period and then extracting unobservable state values from the trajectory that most closely aligns with the final observations of case and death reports.
+Thus, each replicate within an MLE set starts from the same initial conditions, but different MLE sets start from unique initial conditions.
+We make projections six weeks into the future.
+
+# Results
+
+## Parameter Estimates
+```{r mles}
+pars <- res$partable_natural
+beta_id <- which(rownames(pars) == "beta_s")
+s_id <- which(rownames(pars) == "S_0")
+m_id <- which(rownames(pars) == "frac_dead")
+mle_pars <- pars[,2]
+beta_est <- mle_pars[beta_id] * mle_pars[s_id]
+m_est <- mle_pars[m_id]
+```
+
+Our current estimate of baseline transmission rate is `r round(beta_est, 2)`.
+Our current estimate of the fraction of hospitalized cases that result in death is `r round(m_est, 2)`.
+Transmission rate is constant in our model, however.
+Below we plot the estimated latent trend ($\psi$), the mobility covariate ($\phi$), and the resulting trend in transmission over time ($\phi(t) \psi(t) \beta$).
+
+```{r betatime, fig.width=8.5, fig.height=3}
+dates <- unique(pomp_data$Date)
+num_days <- length(dates)
+n_knots <- round(num_days / 10)
+bases <- pomp::bspline.basis(x=1:num_days, nbasis=n_knots, degree=3)
+
+res$partable %>%
+  slice(1) %>%
+  mutate(id = 1:n()) %>%
+  gather("key", "value", -id) %>%
+  filter(key %in% paste0("b", 1:n_knots)) %>%
+  dplyr::select(-id) %>%
+  deframe() -> betas
+
+
+trend <- bases %*% betas
+trend <- exp(trend) / (1+exp(trend))
+trend_df <- tibble(
+  Date = dates,
+  Psi = trend,
+  Phi = covar$rel_beta_change) %>%
+  mutate(PhiPsi = Phi*Psi) %>%
+  gather("key", "value", -Date)
+
+ggplot(trend_df, aes(Date, value, color = key)) +
+  geom_line(aes(size = key)) +
+  scale_y_continuous(limits = c(0, 1)) +
+  scale_color_manual(values = c("dodgerblue", "black", "salmon")) +
+  scale_size_manual(values = c(1,2,1)) +
+  theme_minimal(base_size = 14, base_line_size = 0.5) +
+  theme(legend.position = "top") -> phipsi
+
+beta_trend <- trend_df %>%
+  filter(key == "PhiPsi") %>%
+  mutate(beta = value * beta_est)
+
+ggplot(beta_trend, aes(x = Date, y = beta)) +
+  geom_line() +
+  ylab(expression(beta[t]))+
+  theme_minimal(base_size = 14, base_line_size = 0.5) -> btrend
+
+cowplot::plot_grid(phipsi, btrend, ncol = 2, align = "v")
+
+```
+
+## Model Fits
+
+Here we show the fit our model to the data.
+We plot the trajectory used for determining initial conditions for projections from each MLE parameter set within 2 log likelihood points of the maximum.
+In the plots, dashed lines are the data, solid blue lines are the mean trajectories across MLE sets, and the lighter blue lines are the trajectories from individual MLE sets.
+
+```{r fits}
+most_recent_files <- tail(list.files(path = here("output"), "Georgia_COV"), 3)
+filename_sims <- most_recent_files[grep(pattern = "simulation-scenarios", most_recent_files)]
+simfile <- here('output', filename_sims)
+out_sims <- readRDS(simfile)
+
+pomp_data <- res$pomp_data %>%
+  dplyr::select(-time, -hosps) %>%
+  rename("Cases" = cases,
+         "Deaths" = deaths) %>%
+  gather(key = "Variable", value = "Value", -Date) %>%
+  mutate(SimType = "obs", Period = "Past")
+
+sim_summs <- out_sims %>%
+  dplyr::select(SimType, Period, Date, cases, deaths) %>%
+  rename("Acases" = cases,
+         "Cdeaths" = deaths) %>%
+  gather(key = "Variable", value = "Value", -SimType, -Period, -Date) %>%
+  group_by(SimType, Period, Date, Variable) %>%
+  summarise(lower = ceiling(quantile(Value, 0.025)),
+            ptvalue = ceiling(mean(Value)),
+            upper = ceiling(quantile(Value, 0.975))) %>%
+  ungroup()
+
+end_date <- as.Date(max(pomp_data$Date))
+dates <- seq.Date(as.Date("2020-03-01"), end_date, "days")
+dates_df <- data.frame(time = c(1:length(dates)), Date = dates)
+
+fits <- sim_summs %>%
+  filter(SimType == "status_quo") %>%
+  filter(Period == "Past")
+
+# Diagnostic plot
+fitreps <- out_sims %>%
+  filter(SimType == "status_quo") %>%
+  filter(Period == "Past") %>%
+  dplyr::select(mle_id, SimType, Date, cases, deaths) %>%
+  rename("Cases" = cases,
+         "Deaths" = deaths) %>%
+  gather(key = "Variable", value = "Value",-mle_id, -SimType, -Date) %>%
+  group_by(Date, Variable, mle_id) %>%
+  summarise(Value = ceiling(mean(Value))) %>%
+  ungroup()
+
+meanline <- fitreps %>%
+  group_by(Date, Variable) %>%
+  summarise(Value = ceiling(mean(Value))) %>%
+  ungroup()
+
+medline <- fitreps %>%
+  group_by(Date, Variable) %>%
+  summarise(Value = ceiling(median(Value))) %>%
+  ungroup()
+
+ggplot() +
+  geom_line(data = fitreps, aes(x = Date, y = Value, group = mle_id), 
+            color = "dodgerblue", alpha = 0.2) +
+  geom_line(data = meanline, aes(x = Date, y = Value), size = 1, color = "dodgerblue") +
+  # geom_line(data = medline, aes(x = Date, y = Value), color = "red") +
+  geom_line(data = pomp_data, aes(x = Date, y = Value),linetype = 2) +
+  facet_wrap(~Variable, scales = "free_y", ncol = 1) +
+  ylab("Number of new reports") +
+  theme_minimal(base_size = 14, base_line_size = 0.5)
+```
