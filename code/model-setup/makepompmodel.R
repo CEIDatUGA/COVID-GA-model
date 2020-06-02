@@ -1,4 +1,4 @@
-makepompmodel <- function(par_var_list, pomp_data, covar_table)
+makepompmodel <- function(par_var_list, pomp_data, covar_table, n_knots)
 {
 
   # This generates a pomp object for an SEIR model of COVID 19. 
@@ -31,6 +31,7 @@ makepompmodel <- function(par_var_list, pomp_data, covar_table)
     double detect_frac, diag_speedup; // fraction of those that get eventually diagnosed
     double beta;
     double dW;  // environmental stochasticity/noise
+    double trend;
   
     E_tot = E1+E2+E3+E4;  // all pre-symptomatic
     Ia_tot = Ia1+Ia2+Ia3+Ia4;  // all asymptomatic
@@ -57,15 +58,25 @@ makepompmodel <- function(par_var_list, pomp_data, covar_table)
     // The overall foi is modulated by the unacast data stream as covariate.
     
     //foi = rel_beta_change*( pow( ( 1/(1+exp(-5.65)) ), t ) ) * (exp(log_beta_s)*(Isd_tot + Isu_tot + 1/(1+exp(trans_e))*E_tot + 1/(1+exp(trans_a))*Ia_tot + 1/(1+exp(trans_c))*C_tot+ 1/(1+exp(trans_h))*H_tot));
-    foi = rel_beta_change * (exp(log_beta_s)*(Isd_tot + Isu_tot + 1/(1+exp(trans_e))*E_tot + 1/(1+exp(trans_a))*Ia_tot + 1/(1+exp(trans_c))*C_tot+ 1/(1+exp(trans_h))*H_tot));
-  
+    //foi = rel_beta_change * (exp(log_beta_s)*(Isd_tot + Isu_tot + 1/(1+exp(trans_e))*E_tot + 1/(1+exp(trans_a))*Ia_tot + 1/(1+exp(trans_c))*C_tot+ 1/(1+exp(trans_h))*H_tot));
+    
+    if(fit == 1) {
+      trend = dot_product(K, &b1, &seas_1);
+    }
+    if(fit == 0) {
+      trend = trend_sim;
+    }
+    beta = rel_beta_change * exp(log_beta_s) * (exp(trend) / (1+exp(trend)));
+    foi = beta * (Isd_tot + Isu_tot + 1/(1+exp(trans_e))*E_tot + 1/(1+exp(trans_a))*Ia_tot + 1/(1+exp(trans_c))*C_tot+ 1/(1+exp(trans_h))*H_tot);
+    
+    
     // Time-dependent rate of movement through Isd dummy compartments.
     // Starts at no speedup, then increases with time up to a max.
+    // Ramp-up speed, time at which half-max is reached and max value are fitted.
     // equation for this is 1 + exp(log_max_diag) * exp(log_diag_inc_rate)^t /  ( exp(log_diag_inc_rate)^exp(log_half_diag) +   exp(log_diag_inc_rate)^t    )
     diag_speedup = 1 + exp(log_max_diag)  *  pow(t, exp(log_diag_inc_rate)) / (pow(exp(log_half_diag),exp(log_diag_inc_rate))  + pow(t, exp(log_diag_inc_rate)));
     g_sd = diag_speedup*exp(log_g_sd); //shortened time in symptomatic stage prior to diagnosis
     g_c = exp(log_g_c)/diag_speedup; //increased time in symptomatic stage post diagnosis
-    
     
     // Time dependent fraction of those that move into detected category at the 
     //    end of the E phase.
@@ -74,8 +85,14 @@ makepompmodel <- function(par_var_list, pomp_data, covar_table)
     // equation for this is 1/(1+exp(max_detect_par)) * exp(log_detect_inc_rate)^t / (exp(log_detect_inc_rate)^exp(log_half_detect) + exp(log_detect_inc_rate)^t) + base_detect_frac  
     //detect_frac = 1/(1+exp(max_detect_par)) * pow(t, exp(log_detect_inc_rate))  / ( pow(exp(log_half_detect),exp(log_detect_inc_rate)) + pow(t,exp(log_detect_inc_rate))) + base_detect_frac;
     
-    detect_frac = 1/(1+exp(max_detect_par)) * pow(t, exp(log_detect_inc_rate))  / ( pow(exp(log_half_detect),exp(log_detect_inc_rate)) + pow(t,exp(log_detect_inc_rate)));
+    // detect_frac = 1/(1+exp(max_detect_par)) * pow(t, exp(log_detect_inc_rate))  / ( pow(exp(log_half_detect),exp(log_detect_inc_rate)) + pow(t,exp(log_detect_inc_rate)));
     
+    // Time dependent fraction of those that move into detected category at the 
+    //    end of the E phase.
+    // Starts at 0 at simulation start, then ramps up to some max value (0-1). 
+    // Ramp-up speed, base value and max value could be fitted.
+    // equation for this is 1/(1+exp(max_detect_par)) * exp(log_detect_inc_rate)^t / (exp(log_detect_inc_rate)^exp(log_half_detect) + exp(log_detect_inc_rate)^t) + base_detect_frac  
+    detect_frac = 1/(1+exp(max_detect_par)) * pow(t, exp(log_detect_inc_rate))  / ( pow(exp(log_half_detect),exp(log_detect_inc_rate)) + pow(t,exp(log_detect_inc_rate))) + exp(base_detect_frac);
     
     // -----------------------------------
     // Compute the transition rates
@@ -200,6 +217,8 @@ makepompmodel <- function(par_var_list, pomp_data, covar_table)
     R += trans[11] + trans[15] + trans[24] + trans[29];
     D += trans[28];
     D_new += trans[28];  // new deaths tracker, reset at obs times
+    
+    trendO = trend;
     "
   )
   
@@ -244,6 +263,7 @@ makepompmodel <- function(par_var_list, pomp_data, covar_table)
     R = nearbyint(R_0);
     D = nearbyint(D_0);
     D_new = nearbyint(D_0);
+    trendO = 100;
     "
   )
   
@@ -280,10 +300,10 @@ makepompmodel <- function(par_var_list, pomp_data, covar_table)
     }
     
     //if(ISNA(hosps)) {
-   //   d2 = 0;  // loglik is 0 if no observations
+      //d2 = 0;  // loglik is 0 if no observations
     //} else {
-   //   d2 = dnbinom_mu(hosps, theta2, H_new, 1);
-   // }
+      //d2 = dnbinom_mu(hosps, theta2, H_new, 1);
+    //}
     
     if(ISNA(deaths)) {
       d3 = 0;  // loglik is 0 if no observations
@@ -344,7 +364,7 @@ makepompmodel <- function(par_var_list, pomp_data, covar_table)
     data = dat_for_pomp, 
     times = "time",
     t0 = 1,  # set first sim time to first observation time
-    covar = covariate_table(covar_table, times = "time", order = "constant"),
+    covar = covar, 
     dmeasure = dmeas,
     rmeasure = rmeas,
     rinit = rinit,
@@ -353,6 +373,7 @@ makepompmodel <- function(par_var_list, pomp_data, covar_table)
     paramnames = allparnames, 
     obsnames = c("cases", "deaths"),
     accumvars = c("C_new", "H_new", "D_new"),    
+    globals = paste0("int K = ", as.character(n_knots), ";"),
     cdir=".",
     cfile="tmp1" 
   )

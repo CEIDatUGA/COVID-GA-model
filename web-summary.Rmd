@@ -48,7 +48,7 @@ plot_fits()
 
 <!-- <iframe width='100%' height='400px' style='border:none; margin: 0; padding: 0;' src='output/figures/covidtracker-figures/fits-to-data.html'></iframe> -->
 
-<!-- ```{r data-plot, warning=FALSE, message=FALSE, fig.height=3, fig.width=8.5}  -->
+<!-- ```{r data-plot, warning=FALSE, message=FALSE, fig.height=3, fig.width=8.5} -->
 <!-- datlong <- data %>% -->
 <!--   rename("Acases" = new_cases, -->
 <!--          "Bhosps" = new_hospitalizations, -->
@@ -63,7 +63,7 @@ plot_fits()
 
 <!-- g <- ggplot(datlong, aes(x = Date, y = value)) + -->
 <!--   geom_col() + -->
-<!--   facet_wrap(~variable, ncol = 3, scales = "free_y",  -->
+<!--   facet_wrap(~variable, ncol = 3, scales = "free_y", -->
 <!--              labeller = labeller(variable = variable_names)) + -->
 <!--   ylab("Number of persons") + -->
 <!--   scale_y_continuous(labels = scales::comma)+ -->
@@ -80,7 +80,9 @@ We summarize the effectiveness of social distancing behaviors as the average dev
 We explore a range of social distancing scenarios in Georgia going forward from the present, ranging from increasing social distancing to completely ending social distancing. For each scenario, we use our model to project the likely outcomes for each scenario. We run our model one thousand times for each scenario. The plot below summarizes the social distancing scenarios and the projected cumulative number of cases for each scenario, with a range of possible outcomes for each.
 
 <!-- <img src='output/figures/scenarios-legend.png' style='width:700px'/> -->
-![](output/figures/scenarios-legend-norelax.png){ width=700px }
+
+![](output/figures/scenarios-legend-simple.png){ width=350px }
+
 
 ```{r summaryfig, warning=FALSE, message=FALSE, out.height = '400px'}
 plot_summaryfig()
@@ -138,52 +140,62 @@ These two counterfactual scenarios explore what might have occurred if different
 *Possible futures scenarios*
 
 1. **Increase social distancing.** Increasing social distancing reduces human movements from the current level to 30% of normal, which is the reduction observed in New York City that enabled transmission to decline there.
-2. **Maintain social distancing (status quo).** Maintaining social distancing at the level last observed on April 26 maintains human movements at 74% of normal.
-3. **Relax social distancing.** Relaxing social distancing increases human movements from the current level to 80% of normal. UPDATE: As of May 14, this scenario is no longer relevant, as human movements have already returned to greater than 80% of normal. Therefore we no longer consider this scenario. 
-4. **Return to normal.** Ending social distancing increases human movements from the current level to 100% of normal. 
-
-*Effectiveness scenarios (past and future)*
-
-5. **What if social distancing had continued to increase?** Human movement patterns show that social distancing began to relax around April 10. In this scenario, we explore how the epidemic would have developed if social distancing had continued to increase (and human movements had continued to decreased) until it reached the level observed in New York. 
-6. **What if social distancing had never begun?** To assess the effectiveness of the March 14 and March 23 interventions, we simulate forward from March 1 assuming that no social distancing had been enacted.
-
-The following plot shows the range (80% of simulations fall in this range) of projected cumulative number of recorded cases, hospitalizations, and deaths six weeks from today for each scenario.
-The white dots indicate the median projection across simulations. 
-Note that all three measures of epidemic size are believed to be under-reported, so the true epidemic size is likely to be considerably larger (e.g., the true number of cumulative infections is likely to be 10 to 12 times larger than the numbers reported in these figures).
-
-### {.tabset .tabset-fade .tabset-pills}
+2. **Maintain social distancing (status quo).** Maintaining social distancing at the level last observed.
+3. **Return to normal.** Ending social distancing increases human movements from the current level to 100% of normal. 
 
 ***
 
-#### Natural scale
+### Cumulative infections over time
+
+The following plot shows the estimated total number of infections for the three scenarios. Shaded regions represent the area within which 95% of the model simulations fall.
+
+<!-- #### Natural scale -->
+
+```{r infections}
+knitr::include_graphics(here("output/figures/covidtracker-figures",'infections-trajs-nat.png'))
+```
+
+<!-- #### Log scale -->
+
+<!-- ```{r infectionsl} -->
+<!-- knitr::include_graphics(here("output/figures/covidtracker-figures",'infections-trajs-log.png')) -->
+<!-- ``` -->
+
+### Cumulative cases, hospitalizations and deaths (6 week projection)
+
+The following plot shows the range (95% of simulations fall in this range) of projected cumulative number of recorded cases, hospitalizations, and deaths six weeks from today for each scenario.
+The white dots indicate the median projection across simulations. 
+Note that all three measures of epidemic size are believed to be under-reported, so the true epidemic size is likely to be considerably larger (e.g., the true number of cumulative infections is likely to be 10 to 12 times larger than the numbers reported in these figures).
+
+<!-- ### {.tabset .tabset-fade .tabset-pills} -->
+
+<!-- #### Natural scale -->
 
 ```{r cumsums}
 knitr::include_graphics(here("output/figures/covidtracker-figures",'cumulative-forecasts.png'))
 ```
 
-#### Log scale
+<!-- #### Log scale -->
 
-```{r cumsumsl}
-knitr::include_graphics(here("output/figures/covidtracker-figures",'cumulative-forecasts-log.png'))
-```
+<!-- ```{r cumsumsl} -->
+<!-- knitr::include_graphics(here("output/figures/covidtracker-figures",'cumulative-forecasts-log.png')) -->
+<!-- ``` -->
 
-### {.tabset .tabset-fade .tabset-pills}
+<!-- ### {.tabset .tabset-fade .tabset-pills} -->
 
-***
+### Daily cases, hospitalizations and deaths over time (mean of simulations)
 
-**Average of trajectories for each scenario.**
-
-#### Natural scale
+<!-- #### Natural scale -->
 
 ```{r allnl}
 knitr::include_graphics(here("output/figures/covidtracker-figures",'all-projs-line-nat.png'))
 ```
 
-#### Log scale
+<!-- #### Log scale -->
 
-```{r allll}
-knitr::include_graphics(here("output/figures/covidtracker-figures",'all-projs-line-log.png'))
-```
+<!-- ```{r allll} -->
+<!-- knitr::include_graphics(here("output/figures/covidtracker-figures",'all-projs-line-log.png')) -->
+<!-- ``` -->
 
 
 <!-- ```{r allnr, eval = FALSE} -->
@@ -194,72 +206,56 @@ knitr::include_graphics(here("output/figures/covidtracker-figures",'all-projs-li
 <!-- knitr::include_graphics(here("output/figures",'all-projs-ribbon-log.png')) -->
 <!-- ``` -->
 
-### {.tabset .tabset-fade .tabset-pills}
-
 ***
 
-**The following plots show the observed and projected daily number of recorded cases, hospitalizations, and deaths for the six scenarios.
-Shaded regions represent the area within which 80% of the model simulations fall.**
+### Daily cases and deaths over time (data, model fit, projections)
 
-#### Natural scale
+The following plots show the observed and projected daily number of recorded cases and deaths for the three scenarios. Dashed line represents the observed data. The green line is our model's fit to the observed data, and the purple line is the mean projection. Shaded regions represent the area within which 95% of the model simulations fall.
 
-```{r infections}
-knitr::include_graphics(here("output/figures/covidtracker-figures",'infections-trajs-nat.png'))
-```
-
-#### Log scale
-
-```{r infectionsl}
-knitr::include_graphics(here("output/figures/covidtracker-figures",'infections-trajs-log.png'))
-```
-
-### {.tabset .tabset-fade .tabset-pills}
-
-***
-
-#### Natural scale
+<!-- ### {.tabset .tabset-fade .tabset-pills} -->
+<!-- #### Natural scale -->
 
 ```{r cases}
 knitr::include_graphics(here("output/figures/covidtracker-figures",'cases-trajs-nat.png'))
 ```
 
-#### Log scale
+<!-- #### Log scale -->
 
-```{r casesl}
-knitr::include_graphics(here("output/figures/covidtracker-figures",'cases-trajs-log.png'))
-```
+<!-- ```{r casesl} -->
+<!-- knitr::include_graphics(here("output/figures/covidtracker-figures",'cases-trajs-log.png')) -->
+<!-- ``` -->
 
-### {.tabset .tabset-fade .tabset-pills}
+<!-- ### {.tabset .tabset-fade .tabset-pills} -->
 
-***
+<!-- *** -->
 
-#### Natural scale
+<!-- #### Natural scale -->
 
-```{r hosps}
-knitr::include_graphics(here("output/figures/covidtracker-figures",'hosps-trajs-nat.png'))
-```
+<!-- ```{r hosps} -->
+<!-- knitr::include_graphics(here("output/figures/covidtracker-figures",'hosps-trajs-nat.png')) -->
+<!-- ``` -->
 
-#### Log scale
+<!-- #### Log scale -->
 
-```{r hospsl}
-knitr::include_graphics(here("output/figures/covidtracker-figures",'hosps-trajs-log.png'))
-```
+<!-- ```{r hospsl} -->
+<!-- knitr::include_graphics(here("output/figures/covidtracker-figures",'hosps-trajs-log.png')) -->
+<!-- ``` -->
 
-### {.tabset .tabset-fade .tabset-pills}
+<!-- ### {.tabset .tabset-fade .tabset-pills} -->
 
-***
+<!-- *** -->
 
-#### Natural scale
+<!-- #### Natural scale -->
 
 ```{r deaths}
 knitr::include_graphics(here("output/figures/covidtracker-figures",'deaths-trajs-nat.png'))
 ```
 
-#### Log scale
+<!-- #### Log scale -->
 
-```{r deathsl}
-knitr::include_graphics(here("output/figures/covidtracker-figures",'deaths-trajs-log.png'))
-```
+<!-- ```{r deathsl} -->
+<!-- knitr::include_graphics(here("output/figures/covidtracker-figures",'deaths-trajs-log.png')) -->
+<!-- ``` -->
 
 ## Model details
 
