@@ -106,13 +106,13 @@ simulate_trajectories <- function(
     
     last_time <- obs_sim %>%
       filter(time == max(time)) %>%
-      dplyr::select(.id, mle_id, cases, hosps, deaths)
+      dplyr::select(.id, mle_id, cases, deaths)
     dat <- last_time %>%
       filter(.id == "data")
     init_id <- last_time %>%
       filter(.id != "data") %>%
       mutate(obs_cases = dat$cases,
-             obs_hosps = dat$hosps,
+             # obs_hosps = dat$hosps,
              obs_deaths = dat$deaths) %>%
       mutate(dif1 = abs(obs_cases - cases) / obs_cases,
              dif3 = abs(obs_deaths - deaths) / obs_deaths) %>%
@@ -142,6 +142,7 @@ simulate_trajectories <- function(
                 R_0=round(mean(R)),
                 D_0 = round(mean(D)),
                 trendO_0 = mean(trendO))
+
     
     param_vals[which(names(param_vals) %in% names(inits))] <- inits
     

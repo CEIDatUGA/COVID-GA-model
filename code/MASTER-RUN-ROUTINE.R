@@ -116,8 +116,6 @@ par_var_list <- setparsvars(est_these_pars = est_these_pars,
 # prior_dens <- setpriors(par_var_list)  # for ABC and pMCMC routines
 
 
-
-
 # Read in the movement data covariate table -------------------------------
 
 covar_file <- tail(
@@ -158,6 +156,8 @@ covar = covariate_table(
 # use data, covariate and parameter information to make a 
 # pomp model that's ready for fitting
 source(here("code/model-setup/makepompmodel.R"))
+# covar_table2 <- covar_table
+# covar_table2$rel_beta_change[40:80] = 0.4
 pomp_model <- makepompmodel(par_var_list = par_var_list, 
                             pomp_data = pomp_data, 
                             covar_table = covar,
@@ -171,6 +171,7 @@ pomp_model <- makepompmodel(par_var_list = par_var_list,
 # sims <- simulate(pomp_model, nsim = 1,
 #                  params = simparams, format="data.frame")
 # plot(sims$cases)
+
 
 # Run the mif fitting routine ---------------------------------------------
 # turn on parallel running or not
@@ -238,6 +239,8 @@ saveRDS(object = mif_res, file = filename_mif)
 # # Source the script run the scenarios -- saves a file this time
 source(here("code/forward-simulations/run-scenarios.R"))
 
+source(here("code/forecasting-code/format-forecasts.R"))
+
 
 # Make the plots for the website ------------------------------------------
 
@@ -247,7 +250,7 @@ source(here("code/forward-simulations/run-scenarios.R"))
 # if(datasource == "GAD") {
 #   fig_outpath <- here("output/figures/gadph-figures/")
 # }
-# 
+
 # source(here("code/plotting/plot-scenarios.R"))
 # 
 # # And add the mif trace

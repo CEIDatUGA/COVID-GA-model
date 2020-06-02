@@ -77,10 +77,12 @@ To date, the primary intervention has been the adoption of social distancing beh
 We measure social distancing using aggregated, anonymized locations recorded by location-based mobile phone apps.
 We summarize the effectiveness of social distancing behaviors as the average deviation from baseline, a statistic ranging from 0% (complete cessation of movements) to 100% (no difference from baseline).
 
-We explore a range of social distancing scenarios in Georgia going forward from April 25, ranging from increasing social distancing to completely ending social distancing. For each scenario, we use our model to project the likely outcomes for each scenario. We run our model one thousand times for each scenario. The plot below summarizes the social distancing scenarios and the projected cumulative number of cases for each scenario, with a range of possible outcomes for each.
+We explore a range of social distancing scenarios in Georgia going forward from the present, ranging from increasing social distancing to completely ending social distancing. For each scenario, we use our model to project the likely outcomes for each scenario. We run our model one thousand times for each scenario. The plot below summarizes the social distancing scenarios and the projected cumulative number of cases for each scenario, with a range of possible outcomes for each.
 
 <!-- <img src='output/figures/scenarios-legend.png' style='width:700px'/> -->
+
 ![](output/figures/scenarios-legend-simple.png){ width=350px }
+
 
 ```{r summaryfig, warning=FALSE, message=FALSE, out.height = '400px'}
 plot_summaryfig()

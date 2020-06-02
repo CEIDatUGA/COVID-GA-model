@@ -1,6 +1,11 @@
 /* pomp C snippet file: tmp1 */
+<<<<<<< HEAD
 /* Time: 2020-06-01 09:28:55.490 -0400 */
 /* Salt: A8545D4E2AAD0E9EB9084ACF */
+=======
+/* Time: 2020-05-22 17:37:02.954 -0400 */
+/* Salt: 3C4E6BA8C1299670398CD115 */
+>>>>>>> master
 
 #include <pomp.h>
 #include <R_ext/Rdynload.h>
@@ -373,11 +378,15 @@ void __pomp_stepfn (double *__x, const double *__p, const int *__stateindex, con
     
     // Time-dependent rate of movement through Isd dummy compartments.
     // Starts at no speedup, then increases with time up to a max.
+<<<<<<< HEAD
     // Ramp-up speed, time at which half-max is reached and max value are fitted.
     
     // diag_speedup = (1 + exp(log_max_diag) ) *  pow(t, exp(log_diag_inc_rate)) / (pow(exp(log_half_diag),exp(log_diag_inc_rate))  + pow(t, exp(log_diag_inc_rate)));
     // g_sd = diag_speedup*exp(log_g_sd); //shortened time in symptomatic stage prior to diagnosis
     // g_c = exp(log_g_c)/diag_speedup; //increased time in symptomatic stage post diagnosis
+=======
+    // equation for this is 1 + exp(log_max_diag) * exp(log_diag_inc_rate)^t /  ( exp(log_diag_inc_rate)^exp(log_half_diag) +   exp(log_diag_inc_rate)^t    )
+>>>>>>> master
     diag_speedup = 1 + exp(log_max_diag)  *  pow(t, exp(log_diag_inc_rate)) / (pow(exp(log_half_diag),exp(log_diag_inc_rate))  + pow(t, exp(log_diag_inc_rate)));
     g_sd = diag_speedup*exp(log_g_sd); //shortened time in symptomatic stage prior to diagnosis
     g_c = exp(log_g_c)/diag_speedup; //increased time in symptomatic stage post diagnosis
@@ -386,6 +395,8 @@ void __pomp_stepfn (double *__x, const double *__p, const int *__stateindex, con
     //    end of the E phase.
     // Starts at 0 at simulation start, then ramps up to some max value (0-1). 
     // Ramp-up speed and max value are fitted.
+    // equation for this is 1/(1+exp(max_detect_par)) * exp(log_detect_inc_rate)^t / (exp(log_detect_inc_rate)^exp(log_half_detect) + exp(log_detect_inc_rate)^t) + base_detect_frac  
+    //detect_frac = 1/(1+exp(max_detect_par)) * pow(t, exp(log_detect_inc_rate))  / ( pow(exp(log_half_detect),exp(log_detect_inc_rate)) + pow(t,exp(log_detect_inc_rate))) + base_detect_frac;
     
     // detect_frac = 1/(1+exp(max_detect_par)) * pow(t, exp(log_detect_inc_rate))  / ( pow(exp(log_half_detect),exp(log_detect_inc_rate)) + pow(t,exp(log_detect_inc_rate)));
     
@@ -701,18 +712,17 @@ void __pomp_stepfn (double *__x, const double *__p, const int *__stateindex, con
 #define D		(__x[__stateindex[29]])
 #define trendO		(__x[__stateindex[30]])
 #define cases		(__y[__obsindex[0]])
-#define hosps		(__y[__obsindex[1]])
-#define deaths		(__y[__obsindex[2]])
+#define deaths		(__y[__obsindex[1]])
 
 void __pomp_rmeasure (double *__y, const double *__x, const double *__p, const int *__obsindex, const int *__stateindex, const int *__parindex, const int *__covindex, const double *__covars, double t)
 {
  
-    double theta1, theta2, theta3;
+    double theta1, theta3;
     theta1 = exp(log_theta_cases);
-    theta2 = exp(log_theta_hosps);
+    //theta2 = exp(log_theta_hosps);
     theta3 = exp(log_theta_deaths);
     cases = rnbinom_mu(theta1, C_new);  // for forecasting 
-    hosps = rnbinom_mu(theta2, H_new);  // for forecasting
+    //hosps = rnbinom_mu(theta2, H_new);  // for forecasting
     deaths = rnbinom_mu(theta3, D_new);  // for forecasting
      
 }
@@ -805,7 +815,6 @@ void __pomp_rmeasure (double *__y, const double *__x, const double *__p, const i
 #undef D
 #undef trendO
 #undef cases
-#undef hosps
 #undef deaths
 
 /* C snippet: 'dmeasure' */
@@ -897,17 +906,16 @@ void __pomp_rmeasure (double *__y, const double *__x, const double *__p, const i
 #define D		(__x[__stateindex[29]])
 #define trendO		(__x[__stateindex[30]])
 #define cases		(__y[__obsindex[0]])
-#define hosps		(__y[__obsindex[1]])
-#define deaths		(__y[__obsindex[2]])
+#define deaths		(__y[__obsindex[1]])
 #define lik		(__lik[0])
 
 void __pomp_dmeasure (double *__lik, const double *__y, const double *__x, const double *__p, int give_log, const int *__obsindex, const int *__stateindex, const int *__parindex, const int *__covindex, const double *__covars, double t)
 {
  
-    double d1, d2, d3;
-    double theta1, theta2, theta3;
+    double d1, d3;
+    double theta1, theta3;
     theta1 = exp(log_theta_cases);
-    theta2 = exp(log_theta_hosps);
+   // theta2 = exp(log_theta_hosps);
     theta3 = exp(log_theta_deaths);
     
     if(ISNA(cases)) {
@@ -917,10 +925,17 @@ void __pomp_dmeasure (double *__lik, const double *__y, const double *__x, const
     }
     
     //if(ISNA(hosps)) {
+<<<<<<< HEAD
       //d2 = 0;  // loglik is 0 if no observations
     //} else {
       //d2 = dnbinom_mu(hosps, theta2, H_new, 1);
     //}
+=======
+   //   d2 = 0;  // loglik is 0 if no observations
+    //} else {
+   //   d2 = dnbinom_mu(hosps, theta2, H_new, 1);
+   // }
+>>>>>>> master
     
     if(ISNA(deaths)) {
       d3 = 0;  // loglik is 0 if no observations
@@ -1021,7 +1036,6 @@ void __pomp_dmeasure (double *__lik, const double *__y, const double *__x, const
 #undef D
 #undef trendO
 #undef cases
-#undef hosps
 #undef deaths
 #undef lik
 

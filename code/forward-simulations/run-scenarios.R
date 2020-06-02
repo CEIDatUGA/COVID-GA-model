@@ -81,6 +81,7 @@ obs_sim <- bind_rows(obs_sim, obs_sim2)
 #   geom_line() +
 #   facet_wrap(~mle_id, scales = "free_y")
 
+
 # Run simulations ---------------------------------------------------------
 weeks_ahead <- 6
 num_sims <- 100

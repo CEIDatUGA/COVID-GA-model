@@ -73,10 +73,7 @@ makepompmodel <- function(par_var_list, pomp_data, covar_table, n_knots)
     // Time-dependent rate of movement through Isd dummy compartments.
     // Starts at no speedup, then increases with time up to a max.
     // Ramp-up speed, time at which half-max is reached and max value are fitted.
-    
-    // diag_speedup = (1 + exp(log_max_diag) ) *  pow(t, exp(log_diag_inc_rate)) / (pow(exp(log_half_diag),exp(log_diag_inc_rate))  + pow(t, exp(log_diag_inc_rate)));
-    // g_sd = diag_speedup*exp(log_g_sd); //shortened time in symptomatic stage prior to diagnosis
-    // g_c = exp(log_g_c)/diag_speedup; //increased time in symptomatic stage post diagnosis
+    // equation for this is 1 + exp(log_max_diag) * exp(log_diag_inc_rate)^t /  ( exp(log_diag_inc_rate)^exp(log_half_diag) +   exp(log_diag_inc_rate)^t    )
     diag_speedup = 1 + exp(log_max_diag)  *  pow(t, exp(log_diag_inc_rate)) / (pow(exp(log_half_diag),exp(log_diag_inc_rate))  + pow(t, exp(log_diag_inc_rate)));
     g_sd = diag_speedup*exp(log_g_sd); //shortened time in symptomatic stage prior to diagnosis
     g_c = exp(log_g_c)/diag_speedup; //increased time in symptomatic stage post diagnosis
@@ -85,6 +82,8 @@ makepompmodel <- function(par_var_list, pomp_data, covar_table, n_knots)
     //    end of the E phase.
     // Starts at 0 at simulation start, then ramps up to some max value (0-1). 
     // Ramp-up speed and max value are fitted.
+    // equation for this is 1/(1+exp(max_detect_par)) * exp(log_detect_inc_rate)^t / (exp(log_detect_inc_rate)^exp(log_half_detect) + exp(log_detect_inc_rate)^t) + base_detect_frac  
+    //detect_frac = 1/(1+exp(max_detect_par)) * pow(t, exp(log_detect_inc_rate))  / ( pow(exp(log_half_detect),exp(log_detect_inc_rate)) + pow(t,exp(log_detect_inc_rate))) + base_detect_frac;
     
     // detect_frac = 1/(1+exp(max_detect_par)) * pow(t, exp(log_detect_inc_rate))  / ( pow(exp(log_half_detect),exp(log_detect_inc_rate)) + pow(t,exp(log_detect_inc_rate)));
     
@@ -288,10 +287,10 @@ makepompmodel <- function(par_var_list, pomp_data, covar_table, n_knots)
   
   dmeas <- Csnippet(
     "
-    double d1, d2, d3;
-    double theta1, theta2, theta3;
+    double d1, d3;
+    double theta1, theta3;
     theta1 = exp(log_theta_cases);
-    theta2 = exp(log_theta_hosps);
+   // theta2 = exp(log_theta_hosps);
     theta3 = exp(log_theta_deaths);
     
     if(ISNA(cases)) {
@@ -331,12 +330,12 @@ makepompmodel <- function(par_var_list, pomp_data, covar_table, n_knots)
   
   rmeas <- Csnippet(
     "
-    double theta1, theta2, theta3;
+    double theta1, theta3;
     theta1 = exp(log_theta_cases);
-    theta2 = exp(log_theta_hosps);
+    //theta2 = exp(log_theta_hosps);
     theta3 = exp(log_theta_deaths);
     cases = rnbinom_mu(theta1, C_new);  // for forecasting 
-    hosps = rnbinom_mu(theta2, H_new);  // for forecasting
+    //hosps = rnbinom_mu(theta2, H_new);  // for forecasting
     deaths = rnbinom_mu(theta3, D_new);  // for forecasting
     "
   )
@@ -354,7 +353,7 @@ makepompmodel <- function(par_var_list, pomp_data, covar_table, n_knots)
   
   # remove any column in data that's not time or the fitted variables
   # otherwise pomp might get indigestion
-  dat_for_pomp <- pomp_data %>% select(time, cases, hosps, deaths)
+  dat_for_pomp <- pomp_data %>% select(time, cases, deaths)
   
   
   # Define the pomp model object --------------------------------------------
@@ -372,7 +371,7 @@ makepompmodel <- function(par_var_list, pomp_data, covar_table, n_knots)
     rprocess = euler(step.fun = pomp_step, delta.t = 1/20),
     statenames = varnames,
     paramnames = allparnames, 
-    obsnames = c("cases", "hosps", "deaths"),
+    obsnames = c("cases", "deaths"),
     accumvars = c("C_new", "H_new", "D_new"),    
     globals = paste0("int K = ", as.character(n_knots), ";"),
     cdir=".",
