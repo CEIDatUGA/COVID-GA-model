@@ -1,0 +1,150 @@
+---
+title: "A stochastic model for the transmission of 2019-nCov in Georgia, USA"
+author: "John M. Drake, Andreas Handel, and Andrew T. Tredennick"
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+header-includes:
+  - \usepackage{amsmath}
+output:
+  html_document:
+    df_print: paged
+  pdf_document: default
+---
+
+```{r setup, include=FALSE, echo=FALSE, warning=FALSE, message=FALSE}
+knitr::opts_chunk$set(include=TRUE, echo=FALSE, warning=FALSE, message=FALSE)
+library(here)
+library(tidyverse)
+```
+
+## Introduction
+
+The epidemiology of the 2019-nCov is poorly understood.
+Here we develop a model for the trajectory of 2019-nCov during the early-to-middle stages of transmission in Georgia, USA.
+This model is being used for inference, forecasting, or scenario analysis.
+
+Key features of this model include:
+
+1. Stochastic transmission process. Stochastic models are models with a realistic level of random variation. Stochastic models are essential for proper modeling of systems that start with a small number of infections.
+2. Realistic interval distributions for presymptomatic and symptomatic periods.
+3. Transmission is allowed at different rates for asymptomatic, presymptomatic, and symptomatic individuals.[^1]
+4. Time varying rates of case detection, isolation, and case notification.
+5. Realistic intervention scenarios.
+6. Affect of human mobility on transmission (i.e., social distancing)
+7. A latent process that allows transmission to vary over time due to environmental factors and other behavioral measures that can reduce transmission but are difficult to include with data (e.g., wearing face masks)
+
+This model contains both fixed and fitted parameter values.
+Fixed parameters were defined using clinical outcome reports.
+Non-fixed parameters values were found by fitting the model to incident case and death reports, as described in more detail below.
+The pandemic of 2019-nCov is still evolving and information that was used in the construction of this model may be incomplete or contain errors.
+Accordingly, these results are preliminary, provisional, and subject to change.
+These results have not been peer-reviewed, but have been prepared to a professional standard with the intention of providing useful interpretation of a rapidly developing event. 
+
+## Data
+
+We fit the model to incident case and death reports for Georgia, as collated by <a href="covidtracking.com" target="_blank">The COVID Tracking Project</a>.
+
+
+```{r read-data}
+filenames <- list.files(path = here("output/"), pattern = "Georgia_COV")
+filename <- tail(sort(filenames[grep("*mif.rds", filenames)]), 1)
+fullpath <- paste0("output/", filename)
+data <- readRDS(here(fullpath))$pomp_data %>%
+  dplyr::select(-time, -hosps) %>%
+  rename("Daily case reports" = cases,
+         "Daily death reports" = deaths) %>%
+  mutate() %>%
+  gather("key", "value", -Date)
+
+ggplot(data, aes(x = Date, y = value)) +
+  geom_line(size = 1) +
+  ylab("Number of persons") +
+  facet_wrap(~key, scales = "free", nrow = 2) +
+  theme_minimal(base_size = 14, base_line_size = 0.5)
+```
+
+In addition, we include a covariate that describes human mobility.
+These data come from <a href="https://www.unacast.com/" target="_blank">unacast</a>.
+We smooth the raw data from unacast using a spline fit, resulting in the trajectory of human movement shown below.
+This covariate is used to reduce baseline transmission.
+
+```{r covariate, fig.height=3}
+filenames <- list.files(path = here("output/"), pattern = "Georgia_COV")
+filename <- tail(sort(filenames[grep("*mif.rds", filenames)]), 1)
+fullpath <- paste0("output/", filename)
+res <- readRDS(here(fullpath))
+pomp_data <- res$pomp_data
+covar <- res$covar_table %>%
+  left_join(pomp_data, by = "time")
+
+ggplot(covar, aes(x = Date, y = rel_beta_change)) +
+  geom_line(size = 1) +
+  ylab("Human movement\n(% of normal)") +
+  scale_y_continuous(limits = c(0,1)) +
+  theme_minimal(base_size = 14, base_line_size = 0.5)
+```
+
+
+
+## The Model
+
+The model comprises susceptible, pre-symptomatic, asymptomatic, symptomatic, diagnosed, hospitalized, deceased, and recovered persons. 
+The following compartments are included:  
+
+* $\boldsymbol{S}$ - Uninfected and *susceptible* individuals. Susceptible individuals can become infected by individuals in the $E$, $I_a$, $I_{su}$, $I_{sd}$, $C$, and $H$ stages. Rates of transmission from these stages can be adjusted individually.
+* $\boldsymbol{E}$ - Individuals who have been *exposed*, and so are infected, but do not yet show symptoms. Those individuals can be infectious. At the end of the $E$ stage, a fraction moves into the $I_a$ stage, another fraction moves into the $I_{su}$ stage, and the remainder into the $I_{sd}$ stage.
+* $\boldsymbol{I_a}$ - Individuals who are infected and *asymptomatic*. Those individuals are likely infectious, but the model allows to adjust this.
+* $\boldsymbol{I_{su}}$ - Individuals who are infected and *symptomatic*, but are *undetected*. Those individuals are likely infectious. Individuals in this compartment never get diagnosed, and are assumed to recover.
+* $\boldsymbol{I_{sd}}$ - Individuals who are infected and *symptomatic*, and are *detected*. Those individuals are likely infectious. Individuals in this compartment will get diagnosed and move to $C$.
+* $\boldsymbol{C}$ - Individuals who have been diagnosed as *cases*. Those individuals are likely isolated and not infectious, but the model allows to adjust this. A fraction of individuals in the $C$ stage will naturally recover, without the need for hospitalization. The remainder moves into the $H$ stage.
+* $\boldsymbol{H}$ - Individuals who have been *hospitalized*. Those individuals are likely isolated and not infectious, but the model allows to adjust this. A fraction of individuals in the $H$ stage will recover, the remainder will die.
+* $\boldsymbol{R}$ - *Recovered/removed* individuals. Those individuals have recovered and are immune. 
+* $\boldsymbol{D}$ - Individuals who *died* from the infection. 
+
+To allow more realistic distributions of movement through compartments, several of these compartments are internally split into multiple stages using the *linear chain trick*.[^2]
+
+* $\boldsymbol{E}$ - 4 compartments
+* $\boldsymbol{I_a}$ - 4 compartments 
+* $\boldsymbol{I_{su}}$ - 4 compartments
+* $\boldsymbol{I_{sd}}$ - 4 compartments
+* $\boldsymbol{C}$ - 4 compartments
+* $\boldsymbol{H}$ - 4 compartments
+
+The flow diagram for this model shown below.
+
+```{r pomp-model}
+knitr::include_graphics(here("docs",'pomp-model.png'))
+```
+
+Note that the force of infection ($f$) at time $t$ is: $f(t) = \psi(t)\phi(t)\frac{\beta}{N} \left(I(t) \right)$, where, for simplicity, $I$ stands for all infectious individuals at time $t$.
+$\phi(t)$ is the human mobiltiy metric shown in the figure above.
+$\psi(t)$ is the result of a latent trend process that is modeled using a fitted spline:
+
+$$
+\text{logit}\left(\psi(t)\right) = \sum_{i=1}^K q_i \xi_{i_t},
+$$
+
+where $K$ is the number of knots, $\mathbf{q}$ is a vector of spline coefficients (to be fitted), and $\mathbf{\xi}$ is a matrix basis functions.
+We define the number of knots ($K$) as the number of days in the data set divided by 10 (so, one knot every 10 days).
+Note the logit transformation to go from the linear scale to the 0 - 1 scale.
+
+## Model Fitting
+We fit the model using Maximization by Iterated particle Filtering (MIF).
+Observations (daily case and death reports) were modeled as arising from a negative binomial reporting process.
+We estimated five parameters: baseline transmission rate ($\beta$), the fraction of hospitalized cases that result in death ($m$), a parameter accounting for extra-demographic process noise ($\sigma$), and two negative binomial dispersion parameters ($\theta_c$ and $\theta_d$).
+In addition, we estimated the basis function parameters ($q_i$), whose number depend on the length of the time series at the time of fitting.
+
+All other parameters were fixed at the following values:
+
+MIF relies on particle filtering, which estimates the likelihood of fixed parameters by integrating state variables of a stochastic system.
+To narrow in on the maximum likelihood estimates, MIF lets parameters take a random walk during the filtering process and selectively propagates forward parameter sets (i.e., particles) with the highest likelihood.
+The variance of the random walk decreases at each iteration of MIF, where a MIF iteration means one filtering pass through the time series.
+This procedure converges toward the maximimum likelihood estimates (MLEs), in theory.
+
+We used the IF2 algorithm [@Ionides2015] implemented in the R [@R2017] package **pomp** version 1.18 [@King2016; @King2018] to conduct the MIF procedure.
+To initialize MIF, we generated 30 parameter sets with values normally distributed around our prior expectations based on a literature review and line list data.
+We then performed two round of MIF, each for 150 iterations, with 2,000 particles, and geometric cooling.
+For the first round of MIF we set `cooling.factor = 0.9`.
+For the second round of MIF, which simply continues from where the first round stopped, we set `cooling.factor = 0.7`.
+We then computed the log likelihood of the 30 final MIF parameter sets (i.e., parameter sets collected after 300 MIF iterations) as the log of the mean likelihoods of 10 replicate particle filters with 5,000 particles each.
+At this stage, we assume the parameter set with highest log likelihood is the MLE.
+We use all parameter sets with log likelihoods within 2 of the maximum when forecasting.

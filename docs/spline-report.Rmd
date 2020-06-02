@@ -1,0 +1,310 @@
+---
+title: "Modeling latent changes in COVID-19 transmission over time"
+author: "Andrew Tredennick"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output:
+  html_document:
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE, 
+                      fig.height = 3, fig.width = 5)
+library(tidyverse)
+library(pomp)
+library(knitr)
+library(here)
+
+mifNoSpline <- readRDS(here("output", "Georgia_COV_2020-05-04-13-22_mif.rds"))
+mifSpline <- readRDS(here("output", "Georgia_COV_2020-05-04-11-25_mif.rds"))
+```
+
+## Overview
+
+The current *Georgia stochostic model* of COVID-19 tranmission incorporates a metric of human movement ($\phi(t)$) that moderates the baseline tranmission rate ($\beta$): $\beta(t) = \phi(t)\beta$.
+This formulation is meant to represent the impact of social distancing.
+Social distancing, while powerful, is not the only practice that can reduce transmission.
+Other practices, such as wearing face coverings, maintaining social distance in public spaces, and enhanced cleaning practices, can also reduce transmission.
+These practices are difficult to quantify in data and, in turn, are difficult to model explicitly.
+Nonetheless, we expect that mobility data will become less informative of transmission over time and that other practices will play a larger role.
+
+I used a basis function approach (spline modeling) to model a latent temporal process that mediates baseline tranmission rate.
+The idea is to include a smooth temporal function in the model that stands in for all unobserved processes that can reduce transmission.
+
+## Implementation
+We currently model the force of infection ($f$) at time $t$ as:
+
+$$
+f(t) = \phi(t)\frac{\beta}{N} (I(t)),
+$$
+
+where, for simplicity, $I$ stands for all infectious individuals at time $t$.
+The mobility index $\phi$ looks like this:
+
+```{r phi}
+phi <- mifNoSpline$pomp_data %>%
+  left_join(mifNoSpline$covar_table, by = "time") 
+ggplot(phi, aes(x = Date, y = rel_beta_change)) +
+  geom_line() +
+  scale_y_continuous(limits = c(0, 1))+
+  ylab(expression(phi))+
+  theme_grey(base_size = 14)
+```
+
+I proposed to add a temporal basis function to incorporate additional tranmission reduction over time that we cannot observe.
+Let the new temporal term be $\psi$, which is modeled as:
+
+$$
+\text{logit}\left(\psi(t)\right) = \sum_{i=1}^K q_i \xi_{i_t},
+$$
+
+where $K$ is the number of knots, $\mathbf{q}$ is a vector of spline coefficients (to be fitted), and $\mathbf{\xi}$ is a matrix basis functions.
+I define the number of knots ($K$) as the number of days in the data set divided by 7 (so, one knot per week).
+Note the logit transformation to go from the linear scale to the 0 - 1 scale.
+Thus, $f(t)$ becomes: $f(t) = \psi(t)\phi(t)\frac{\beta}{N} (I(t))$.
+
+Assuming $K = 9$, the basis functions are:
+
+```{r bfuncs}
+bases <- bspline.basis(x=1:64,nbasis=9,degree=3)
+matplot(bases, type = "l", xlab = "Day (since March 1)", ylab = "Basis value")
+```
+
+Assuming a vector of $\mathbf{q}$ values drawn from a normal distribution with mean 0 and unit variance, the resulting function can look like this:
+
+```{r bfuncfunc}
+set.seed(1238563)
+betas <- rnorm(ncol(bases))
+trend <- bases%*%betas
+trends <- exp(trend) / (1+exp(trend))
+plot(trends, ylab = expression(psi), xlab = "Day (since March 1)", 
+     type = "l", ylim = c(0,1))
+```
+
+Using MIF, we actually fit the $\mathbf{q}$ values to find the best $\psi$ trend.
+
+## Results
+I fit two models to data through May 3, 2020, one model with the new basis function and one without.
+Here are the data:
+
+```{r data, fig.width=8.5}
+dat <- mifNoSpline$pomp_data
+dat %>%
+  dplyr::select(-time) %>%
+  gather("key", "value", -Date) %>%
+  ggplot(aes(x = Date, y = value)) +
+  geom_point() +
+  facet_wrap(~key, scales = "free_y") +
+  ylab("Number of new reports")
+```
+
+The fitted spline coefficients produce a trend over time, which I plot with the mobility trend and their combined influence on tranmission.
+Recall that "phi" is the mobility metric and "psi" is the latent metric produced by the spline fit.
+
+```{r trendfit}
+betas <- mifSpline$partable %>%
+  dplyr::select(starts_with("b")) %>%
+  slice(1) %>%
+  as.matrix() %>%
+  t()
+trend <- bases%*%betas
+trends <- exp(trend) / (1+exp(trend))
+phi$psi <- as.numeric(trends)
+
+phi$mod <- phi$rel_beta_change * phi$psi
+mod <- phi
+
+phi %>%
+  dplyr::select(Date, rel_beta_change, psi) %>%
+  rename("phi" = rel_beta_change) %>%
+  gather("key", "value", -Date) %>%
+  ggplot(aes(x = Date, y = value)) +
+  geom_line(aes(color = key)) +
+  geom_line(data = mod, aes(x= Date, y = mod), size = 1.5) +
+  scale_y_continuous(limits = c(0,1)) +
+  labs(y = "Proportion transmission reduced")
+```
+
+And here are the two model fits.
+Note that both models include the mobility covariate; the "spline" model also includes the spline fit which additionaly augments the transmission rate (thick line in the figure above).
+
+### With spline
+
+```{r fig1, echo=FALSE, fig.cap="Fit of model to data with the spline for tranmission reduction (cases). Heavy black line is the mean across all MLEs within 2 likelihood points of the maximum. Colored lines show individual MLE trajectories.", out.width = '50%'}
+knitr::include_graphics("spline.png")
+```
+
+```{r splinefit, eval = FALSE}
+mifs <- mifSpline$mif_runs
+pfs <- mifSpline$pf_runs
+pomp_model <- mifSpline$pomp_model
+
+n_ini_cond = length(pfs)
+ll = list()
+for (i in 1:n_ini_cond) {
+  ll1 <- sapply(pfs[[i]], logLik)
+  ll[[i]] <- logmeanexp(ll1, se = TRUE)
+}
+
+# get estimated values for all parameters that were estimated for each run 
+mif_coefs <- data.frame(matrix(unlist(sapply(mifs, coef)), 
+                               nrow = length(mifs), 
+                               byrow = T))
+colnames(mif_coefs) <- names(coef(mifs[[1]]))  # names are the same for all mifs
+
+# convert the list containing the log likelihoods for 
+# each run stored in ll into a data frame
+ll_df <- data.frame(matrix(unlist(ll), nrow=n_ini_cond, byrow=T))
+
+# combine the ll_df and mif_coefs data frames. 
+# Also do some cleaning/renaming
+pf_logliks <- ll_df %>%
+  dplyr::rename("LogLik" = X1,
+                "LogLik_SE" = X2) %>%
+  dplyr::mutate(MIF_ID = 1:n()) %>%
+  dplyr::select(MIF_ID, LogLik, LogLik_SE) %>%
+  bind_cols(mif_coefs) %>%
+  dplyr::arrange(-LogLik)
+
+all_mles <- pf_logliks %>%
+  filter(LogLik > (max(LogLik)-2)) %>%
+  dplyr::select(-MIF_ID, -LogLik, -LogLik_SE)
+
+sims <- matrix(NA, nrow = nrow(mifSpline$pomp_data), ncol = nrow(all_mles))
+for(i in 1:nrow(all_mles)) {
+  simsraw <- simulate(pomp_model, nsim = 100, format = "data.frame", params = all_mles[i,])
+  simsout <- simsraw %>%
+    group_by(time) %>%
+    summarise(cases = mean(cases))
+  sims[,i] <- simsout$cases
+}
+png("spline.png")
+matplot(sims, type = "l")
+lines(rowMeans(sims), lwd = 5)
+# plot(sims$cases, type  ='l', ylim = c(0,2000))
+points(mifSpline$pomp_data$cases, pch = 19)
+dev.off()
+```
+
+### Without spline
+
+```{r fig2, echo=FALSE, fig.cap="Fit of model to data with no spline for tranmission reduction (cases). Heavy black line is the mean across all MLEs within 2 likelihood points of the maximum. Colored lines show individual MLE trajectories.", out.width = '50%'}
+knitr::include_graphics("nospline.png")
+```
+
+
+```{r nosplinefit, eval = FALSE}
+mifs <- mifNoSpline$mif_runs
+pfs <- mifNoSpline$pf_runs
+pomp_model <- mifNoSpline$pomp_model
+
+n_ini_cond = length(pfs)
+ll = list()
+for (i in 1:n_ini_cond) {
+  ll1 <- sapply(pfs[[i]], logLik)
+  ll[[i]] <- logmeanexp(ll1, se = TRUE)
+}
+
+# get estimated values for all parameters that were estimated for each run 
+mif_coefs <- data.frame(matrix(unlist(sapply(mifs, coef)), 
+                               nrow = length(mifs), 
+                               byrow = T))
+colnames(mif_coefs) <- names(coef(mifs[[1]]))  # names are the same for all mifs
+
+# convert the list containing the log likelihoods for 
+# each run stored in ll into a data frame
+ll_df <- data.frame(matrix(unlist(ll), nrow=n_ini_cond, byrow=T))
+
+# combine the ll_df and mif_coefs data frames. 
+# Also do some cleaning/renaming
+pf_logliks <- ll_df %>%
+  dplyr::rename("LogLik" = X1,
+                "LogLik_SE" = X2) %>%
+  dplyr::mutate(MIF_ID = 1:n()) %>%
+  dplyr::select(MIF_ID, LogLik, LogLik_SE) %>%
+  bind_cols(mif_coefs) %>%
+  dplyr::arrange(-LogLik)
+
+all_mles <- pf_logliks %>%
+  filter(LogLik > (max(LogLik)-2)) %>%
+  dplyr::select(-MIF_ID, -LogLik, -LogLik_SE)
+
+sims <- matrix(NA, nrow = nrow(mifNoSpline$pomp_data), ncol = nrow(all_mles))
+for(i in 1:nrow(all_mles)) {
+  simsraw <- simulate(pomp_model, nsim = 100, format = "data.frame", params = all_mles[i,])
+  simsout <- simsraw %>%
+    group_by(time) %>%
+    summarise(cases = mean(cases))
+  sims[,i] <- simsout$cases
+}
+png("nospline.png")
+matplot(sims, type = "l")
+lines(rowMeans(sims), lwd = 5)
+# plot(sims$cases, type  ='l', ylim = c(0,2000))
+points(mifSpline$pomp_data$cases, pch = 19)
+dev.off()
+```
+
+
+
+### Model comparison
+Here I compare the models via log likelihood and AIC.
+Note that for AIC I just assume that the no spline model has 0 parameters and that the spline model has 9 parameters.
+This gets at the relative difference between the two: the nine basis function coefficients.
+```{r aic}
+maxLLSpline <- mifSpline$partable[1,"LogLik"]
+maxLLNoSpline <- mifNoSpline$partable[1, "LogLik"]
+
+aicSpline <- 2*9 - 2*maxLLSpline
+aicNoSpline <- - 2*maxLLNoSpline
+
+modComp <- tibble(Model = c("Without Spline", "WIth Spline"),
+                  `Log Likelihood` = c(maxLLNoSpline, maxLLSpline),
+                  `AIC` = c(aicNoSpline, aicSpline))
+kable(modComp)
+```
+
+### Parameter estimates
+```{r params}
+param_names <- rownames(mifNoSpline$partable_natural)
+paramsNoSpline <-  mifNoSpline$partable_natural %>%
+  mutate(Names = param_names) %>%
+  filter(is_fitted == "yes") %>%
+  dplyr::select(X1, Names) %>%
+  mutate(X1 = ifelse(Names == "beta_s", X1 * 10600000, X1)) %>%
+  rename("MLE" = X1)
+
+param_names <- rownames(mifSpline$partable_natural)
+paramsSpline <-  mifSpline$partable_natural %>%
+  mutate(Names = param_names) %>%
+  filter(is_fitted == "yes") %>%
+  dplyr::select(X1, Names) %>%
+  mutate(X1 = ifelse(Names == "beta_s", X1 * 10600000, X1)) %>%
+  filter(Names %in% paramsNoSpline$Names) %>%
+  rename("MLE" = X1)
+```
+
+#### MLEs from no spline fit
+```{r p1}
+kable(paramsNoSpline)
+```
+
+#### MLEs from spline fit
+```{r p2}
+kable(paramsSpline)
+```
+
+## Discussion
+
+Both models are equivalent according to AIC; judging be log likelihood alone, the "with spline" model is superior.
+The two models lead to rather different trajectories.
+The "with spline" model suggests a flattening of the curve.
+The "no spline" model (which is the default) suggests a continual growth in number of cases.
+
+I think the real question is whether we "buy" the resulting trend suggested by the fitted model in terms of how $\beta$ is modulated by mobility data and the latent process. 
+In particular, including the spline affects the estimates of fraction detected, fraction hospitalized, and fraction that die once in hospital.
+The estimates for these parameters seem much more plausible in the model *without the spline*.
+
+## Questions moving forward
+1. Do we stop this line of work given the unrealistic parameter estimates?
+2. Do implement the underlying spline trend in some other way?
