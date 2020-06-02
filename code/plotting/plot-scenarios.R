@@ -148,8 +148,11 @@ ggplot() +
   facet_wrap(~Variable, scales = "free_y", ncol = 1)
 
 ## Function makes and save png and html plots, and returns html plot
+
+pomp_data_filt <- pomp_data %>% filter(Variable != "Bhosps")
+fits_filt <- fits %>% filter(Variable != "Bhosps")
 plot_fits <- function() {
-  ggplot(fits) +
+  ggplot(fits_filt) +
     # geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2, color = NA) +
     geom_line(alpha=1, aes(x = Date, y = ptvalue, group = Variable,
                            text=sprintf("Date: %s<br>Fit: %s", Date, ptvalue)
@@ -157,7 +160,7 @@ plot_fits <- function() {
     ) +
     # geom_point(data = pomp_data, alpha=.5, aes(x = Date, y = Value)) +
     ## changed points to bars
-    geom_col(data = pomp_data,
+    geom_col(data = pomp_data_filt,
              alpha=.5, aes(x = Date, y = Value,
                            text=sprintf("Date: %s<br>Data: %s", Date, Value))) +
     facet_wrap(~Variable, ncol = 3, scales = "free_y",
@@ -244,37 +247,40 @@ cum_summs_traj <- out_sims %>%
 #   guides(color = FALSE)
 
 ## alt line subplot
+
+cumsum.ylim <- c(0, plyr::round_any(max(cumulative_summs$max), 20000, f = ceiling))
+
 # geom_line(data = df[3:4,], aes(x = x, y = y), color = 'blue', size = 3)
 lp <- ggplot(cum_summs_traj, aes(x = Date, y = Cases)) +
   # geom_line(data = filter(cum_summs_traj, SimType == '5Continuously improving social distancing'),
   #           color = mycols['blue'], size = 1, linetype = 2) +
-  geom_line(data = filter(cum_summs_traj, SimType == '6No intervention'),
-            color = mycols['purple'], size = 1, linetype = 2) +
+  # geom_line(data = filter(cum_summs_traj, SimType == '6No intervention'),
+  #           color = mycols['purple'], size = 1, linetype = 2) +
   geom_line(data = filter(cum_summs_traj, SimType == '1Increased social distancing'),
             color = mycols['lightblue'], size = 1, linetype = 1) +
   geom_line(data = filter(cum_summs_traj, SimType == '2Status quo'),
             color = mycols['green'], size = 1, linetype = 1) +
-  geom_line(data = filter(cum_summs_traj, SimType == '3Relax social distancing'),
-            color = mycols['pink'], size = 1, linetype = 1) +
+  # geom_line(data = filter(cum_summs_traj, SimType == '3Relax social distancing'),
+  #           color = mycols['pink'], size = 1, linetype = 1) +
   geom_line(data = filter(cum_summs_traj, SimType == '4Return to normal'),
             color = mycols['red'], size = 1, linetype = 1) +
   geom_vline(aes(xintercept = as.numeric(foredate)), color = "grey35", linetype = 2) +
   ylab("Total number of\nconfirmed cases") +
-  scale_y_continuous(labels = scales::comma, limits = c(0, 20000)) +
+  scale_y_continuous(labels = scales::comma, limits = cumsum.ylim) +
   theme_minimal()
 
 ### plotly
 plotly_lp <- lp %>% plotly::ggplotly() %>%
   layout(showlegend=FALSE,
-         yaxis = list(range = c(0,20000)),
+         yaxis = list(range = cumsum.ylim),
          xaxis = list(showline = TRUE),
-         annotations= list(yref = 'y', xref = "x", y = 750000, x = as.numeric(foredate),
+         annotations= list(yref = 'paper', xref = "x", y = .25, x = as.numeric(foredate),
                            text = format(foredate, format="%b %d"),
                            showarrow = FALSE, textangle=-90, xanchor = 'right')
          )
 
 ## range subplot
-mycols.vec <- mycols
+mycols.vec <- mycols[c('lightblue','green','red')]
 names(mycols.vec) <- NULL
 rp <- ggplot(cumulative_summs %>%
                filter(Variable == "Acases"),
@@ -285,7 +291,7 @@ rp <- ggplot(cumulative_summs %>%
   scale_color_manual(values = mycols.vec) +
   ylab("") +
   xlab("") +
-  scale_y_continuous(labels = scales::comma, limits = c(0, 200000))+
+  scale_y_continuous(labels = scales::comma, limits = cumsum.ylim)+
   scale_x_discrete(labels = rep("", 6)) +
   theme_void() +
   guides(color = FALSE)
@@ -293,7 +299,7 @@ rp <- ggplot(cumulative_summs %>%
 ### plotly
 plotly_rp <- rp %>% plotly::ggplotly(tooltip='text') %>% 
   layout(showlegend=FALSE,
-         yaxis = list(range = c(0,2000000),
+         yaxis = list(range = cumsum.ylim,
                       showline = TRUE,
                       side = "right",
                       title = "Final range across\nmultiple simulations",
@@ -336,14 +342,14 @@ cp <- ggplot(covar_scensp,
              aes(x = Date, y = Movement, text = )) +
   # geom_line(data = filter(covar_scensp, SimType == '5Continuously improving social distancing'),
   #           color = mycols['blue'], size = 1, linetype = 2) +
-  geom_line(data = filter(covar_scensp, SimType == '6No intervention'),
-            color = mycols['purple'], size = 1, linetype = 2) +
+  # geom_line(data = filter(covar_scensp, SimType == '6No intervention'),
+  #           color = mycols['purple'], size = 1, linetype = 2) +
   geom_line(data = filter(covar_scensp, SimType == '1Increased social distancing'),
             color = mycols['lightblue'], size = 1, linetype = 1) +
   geom_line(data = filter(covar_scensp, SimType == '2Status quo'),
             color = mycols['green'], size = 1, linetype = 1) +
-  geom_line(data = filter(covar_scensp, SimType == '3Relax social distancing'),
-            color = mycols['pink'], size = 1, linetype = 1) +
+  # geom_line(data = filter(covar_scensp, SimType == '3Relax social distancing'),
+  #           color = mycols['pink'], size = 1, linetype = 1) +
   geom_line(data = filter(covar_scensp, SimType == '4Return to normal'),
             color = mycols['red'], size = 1, linetype = 1) +
   geom_vline(aes(xintercept = as.numeric(foredate)), color = "grey35", linetype = 2) +
@@ -364,11 +370,35 @@ plotly_cp <- cp %>% plotly::ggplotly() %>%
                            text = format(foredate, format="%b %d"),
                            showarrow = FALSE, textangle=-90, xanchor = 'right'))
 
+## plotly scenario labels
+scen_incr_end <- covar_scensp %>% filter(SimType=='1Increased social distancing') %>% 
+  select(Movement) %>% tail(1) %>% pull()
+scen_sq_end <- covar_scensp %>% filter(SimType=='2Status quo') %>% 
+  select(Movement) %>% tail(1) %>% pull()
+scen_norm_end <- covar_scensp %>% filter(SimType=='4Return to normal') %>% 
+  select(Movement) %>% tail(1) %>% pull()
+
+plotly_scenlabs <- plotly_empty() %>% 
+  layout(showlegend=FALSE,
+         yaxis = list(range = c(0,1)),
+         xaxis = list(range = c(0,1), showline = FALSE),
+         annotations = list(list(yref = 'y', xref = "x", x = 0, showarrow = FALSE, xanchor = 'left',
+                                 y = scen_incr_end, text = c('Increase distancing'),
+                                 font=list(color = mycols['lightblue'], size = 8)),
+                            list(yref = 'y', xref = "x", x = 0, showarrow = FALSE, xanchor = 'left',
+                                 y = scen_sq_end, text = c('Maintain distancing'),
+                                 font=list(color = mycols['green'], size = 8)),
+                            list(yref = 'y', xref = "x", x = 0, showarrow = FALSE, xanchor = 'left',
+                                 y = scen_norm_end, text = c('Return to Normal'),
+                                 font=list(color = mycols['red'], size = 8))
+                            )
+         )
+
 ## make plotly dashboard and save as Widget
 
 ## Function makes and saves html plot, returns html plot
 plot_summaryfig <- function() {
-  p_landfig <- plotly::subplot(plotly_cp, plotly_empty(), plotly_lp, plotly_rp,
+  p_landfig <- plotly::subplot(plotly_cp, plotly_scenlabs, plotly_lp, plotly_rp,
                                nrows = 2, heights = c(.4,.6), widths = c(.85,.15),
                                shareX = FALSE, titleY = TRUE
                                ) %>%
@@ -526,7 +556,9 @@ pomp_data <- pomp_data %>%
   mutate(Period = "APast")
 collabs <- c("Past", "Future")
 ggplot(all_summs %>%
-         filter(Variable == "Acases"),
+         filter(Variable == "Acases") %>% 
+         mutate(lower = if_else(Period=='APast',ptvalue,lower)) %>% 
+         mutate(upper = if_else(Period=='APast',ptvalue,upper)),
        aes(x = Date, color = Period, fill = Period)) +
   geom_line(data = pomp_data %>%
               filter(Variable == "Acases") %>%
@@ -553,15 +585,18 @@ ggsave(paste0(fig_outpath, "/cases-trajs-nat.png"),
 
 # Hosps
 ggplot(all_summs %>%
-         filter(Variable == "Bhosps"),
+         filter(Variable == "Bhosps") %>% 
+         mutate(lower = if_else(Period=='APast',ptvalue,lower)) %>% 
+         mutate(upper = if_else(Period=='APast',ptvalue,upper)),
        aes(x = Date, color = Period, fill = Period)) +
-  geom_point(data = pomp_data %>%
-               filter(Variable == "Bhosps") %>%
-               dplyr::select(-SimType),
-             aes(x = Date, y = Value), size = 1, color = "grey35") +
+  # geom_point(data = pomp_data %>%
+  #              filter(Variable == "Bhosps") %>%
+  #              dplyr::select(-SimType),
+  #            aes(x = Date, y = Value), size = 1, color = "grey35") +
   geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2, color = NA) +
   geom_line(aes(y = ptvalue)) +
-  facet_grid(SimType~., labeller = labeller(SimType = scen_labs)) +
+  facet_wrap(~SimType, ncol = 1, labeller = labeller(SimType = scen_labs)) +
+  # facet_grid(SimType~., labeller = labeller(SimType = scen_labs)) +
   scale_color_brewer(type = "qual", name = NULL, labels = collabs) +
   scale_fill_brewer(type = "qual", name = NULL, labels = collabs) +
   theme_minimal() +
@@ -571,7 +606,7 @@ ggplot(all_summs %>%
   theme(legend.position = "top") +
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
   ggtitle("New daily hospitalizations") +
-  coord_cartesian(ylim = c(0, 10000)) -> phospsnat
+  coord_cartesian(ylim = c(0, 1000)) -> phospsnat
 ggsave(paste0(fig_outpath, "/hosps-trajs-nat.png"),
        plot = phospsnat,
        width = 8.5, height = 3,
@@ -579,7 +614,9 @@ ggsave(paste0(fig_outpath, "/hosps-trajs-nat.png"),
 
 # Deaths
 ggplot(all_summs %>%
-         filter(Variable == "Cdeaths"),
+         filter(Variable == "Cdeaths") %>% 
+         mutate(lower = if_else(Period=='APast',ptvalue,lower)) %>% 
+         mutate(upper = if_else(Period=='APast',ptvalue,upper)),
        aes(x = Date, color = Period, fill = Period)) +
   geom_line(data = pomp_data %>%
                filter(Variable == "Cdeaths") %>%
@@ -604,7 +641,7 @@ ggsave(paste0(fig_outpath, "/deaths-trajs-nat.png"),
        width = 5, height = 6,
        units = "in", dpi = 300)
 
-
+## TODO remove reibbons from past for all log plots
 ## LOG SCALE
 ggplot(infection_summaries, aes(x = Date, color = Period, fill = Period)) +
   geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2, color = NA) +
