@@ -159,7 +159,7 @@ To narrow in on the maximum likelihood estimates, MIF lets parameters take a ran
 The variance of the random walk decreases at each iteration of MIF, where a MIF iteration means one filtering pass through the time series.
 This procedure converges toward the maximimum likelihood estimates (MLEs), in theory.
 
-We used the IF2 algorithm [@Ionides2015] implemented in the R [@R2017] package **pomp** version 1.18 [@King2016; @King2018] to conduct the MIF procedure.
+We used the IF2 algorithm^[Ionides et al. 2015 (https://www.pnas.org/content/112/3/719)] implemented in the R^[R Core Team 2019 (https://www.r-project.org/)] package **pomp** version 2.7.1.0^[King et al. 2016 (https://www.jstatsoft.org/article/view/v069i12) and King et al. 2020 (https://kingaa.github.io/pomp/)] to conduct the MIF procedure.
 To initialize MIF, we generated 30 parameter sets with values normally distributed around our prior expectations based on a literature review and line list data.
 We then performed two round of MIF, each for 150 iterations, with 2,000 particles, and geometric cooling.
 For the first round of MIF we set `cooling.factor = 0.9`.
@@ -174,6 +174,7 @@ First, we calculate the mean absolute error (MAE) of the model by comparing in-s
 To do so, we simulate 100 trajectories from the model from all parameter sets within 2 points of the maximum log likelihood.
 We then calculate the MAE for each data point across the replicate simulations and then take the average MAE over the time series.
 We do this independently for case and death data.
+We smoothed the observations using a 7-day moving average before calculating MAE.
 
 Second, we evaluate the forecast performance of our model by comparing projections to new data.
 We make benchmark forecasts every Monday that are compared to new data as they emerge.
@@ -208,7 +209,7 @@ m_est <- mle_pars[m_id]
 
 Our current estimate of baseline transmission rate is `r round(beta_est, 2)`.
 Our current estimate of the fraction of hospitalized cases that result in death is `r round(m_est, 2)`.
-Transmission rate is constant in our model, however.
+Transmission rate is not constant in our model, however.
 Below we plot the estimated latent trend ($\psi$), the mobility covariate ($\phi$), and the resulting trend in transmission over time ($\phi(t) \psi(t) \beta$).
 
 ```{r betatime, fig.width=8.5, fig.height=3}
@@ -327,38 +328,66 @@ ggplot() +
   theme_minimal(base_size = 14, base_line_size = 0.5)
 ```
 
+Mean absolute error of our model has remained relatively constant over the past few weeks (see plot below).
+
+```{r errors, fig.height=2.5}
+dat <- res$pomp_data %>%
+  dplyr::select(time, cases, deaths) 
+
+# Apply 7-day moving average to the data
+ma <- function(x) {
+  window <- 7
+  n <- c(seq.int(window), rep(window, length(x)-window))
+  xm <- ceiling(data.table::frollmean(x, n, adaptive=TRUE, na.rm = T))
+  xm[is.nan(xm)] <- NA 
+  return(xm)
+}
+
+dat <- dat %>%
+  mutate(cases = ma(cases),
+         deaths = ma(deaths)) %>%
+  gather("key", "value", -time) %>%
+  rename("observation" = value)
+  
+out_sims %>%
+  filter(SimType == "status_quo") %>%
+  dplyr::select(rep_id, time, cases, deaths) %>%
+  gather("key", "value", -rep_id, -time) %>%
+  left_join(dat, by = c("time", "key")) %>%
+  drop_na() %>%
+  mutate(abserror = abs(value - observation)) %>%
+  group_by(time, key) %>%
+  summarise(mae = mean(abserror)) %>%
+  ungroup() %>%
+  left_join(res$pomp_data[,c("time", "Date")], by = "time") -> maeByDate
+
+ggplot(data = maeByDate, aes(x = Date, y = mae)) +
+  geom_line() +
+  facet_wrap(~key, scales = "free_y") +
+  ggtitle("Mean absolute error over time") +
+  ylab("MAE") +
+  theme_minimal(base_size = 14, base_line_size = 0.5)
+
+maeTotal <- maeByDate %>%
+  group_by(key) %>%
+  summarise(mmae = round(mean(mae),2))
+```
+
+Overall, the MAE of our model for cases is `r maeTotal %>% filter(key == "cases") %>% pull(mmae)`.
+The MAE of our model for deaths is `r maeTotal %>% filter(key == "deaths") %>% pull(mmae)`.
+
+```{r forecasts}
+forecast_files <- list.files("../output/forecasts/", pattern = ".csv")
+```
+
 ## Model Projections
 
 ### Cumulative infections over time
 
 The following plot shows the estimated total number of infections for the three scenarios. Shaded regions represent the area within which 95% of the model simulations fall.
 
-<!-- #### Natural scale -->
-
 ```{r infections}
 knitr::include_graphics(here("output/figures/covidtracker-figures",'infections-trajs-nat.png'))
-```
-
-<!-- #### Log scale -->
-
-<!-- ```{r infectionsl} -->
-<!-- knitr::include_graphics(here("output/figures/covidtracker-figures",'infections-trajs-log.png')) -->
-<!-- ``` -->
-
-### Cumulative cases, hospitalizations and deaths (6 week projection)
-
-The following plot shows the range (95% of simulations fall in this range) of projected cumulative number of recorded cases, hospitalizations, and deaths six weeks from today for each scenario.
-The white dots indicate the median projection across simulations. 
-Note that all three measures of epidemic size are believed to be under-reported, so the true epidemic size is likely to be considerably larger (e.g., the true number of cumulative infections is likely to be 10 to 12 times larger than the numbers reported in these figures).
-
-```{r cumsums}
-knitr::include_graphics(here("output/figures/covidtracker-figures",'cumulative-forecasts.png'))
-```
-
-### Daily cases, hospitalizations and deaths over time (mean of simulations)
-
-```{r allnl}
-knitr::include_graphics(here("output/figures/covidtracker-figures",'all-projs-line-nat.png'))
 ```
 
 ### Daily cases and deaths over time (data, model fit, projections)
@@ -373,3 +402,7 @@ knitr::include_graphics(here("output/figures/covidtracker-figures",'cases-trajs-
 ```{r deaths}
 knitr::include_graphics(here("output/figures/covidtracker-figures",'deaths-trajs-nat.png'))
 ```
+
+# Next steps
+This model is currently being used primarily to make projections of the future transmission of COVID-19 to help inform public health officials as they make decisions about "re-opening." 
+In the near future, we will use the model to make more formal inference about key aspects of COVID-19 transmission such as the transmission rate over time and the fraction of asymptomatic cases.
