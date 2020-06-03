@@ -132,12 +132,7 @@ Key dates for the control COVID-19 in Georgia include:
 * March 23, 2020: Executive order limiting large gatherings statewide and ordering "shelter in place"
 * April 20, 2020: Executive order moving certain businesses to minimum operations
 
-In what follows we consider six scenarios.
-The first four scenarios are projections of possible futures based on what has already happened in the past.
-The final two scenarios are simulations of the epidemic starting from March 1, 2020 showing the effectiveness of different interventions and behaviors.
-These two counterfactual scenarios explore what might have occurred if different actions had been taken in the past.
-
-*Possible futures scenarios*
+In what follows we consider three social distancing scenarios based on what has already happened to date:
 
 1. **Increase social distancing.** Increasing social distancing reduces human movements from the current level to 30% of normal, which is the reduction observed in New York City that enabled transmission to decline there.
 2. **Maintain social distancing (status quo).** Maintaining social distancing at the level last observed.
