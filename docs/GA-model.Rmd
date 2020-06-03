@@ -1,5 +1,5 @@
 ---
-title: "A stochastic model for the transmission of 2019-nCov in Georgia, USA"
+title: "A stochastic model for the transmission of SARS-CoV-2 in Georgia, USA"
 author: 
   - John M. Drake^[Odum School of Ecology and Center for the Ecology of Infectious Diseases, University of Georgia]
   - Andreas Handel^[Department of Epidemiology and Biostatistics and Center for the Ecology of Infectious Diseases, University of Georgia]
@@ -29,8 +29,8 @@ All code and data needed to reproduce our results can be found in our public Git
 
 # Introduction
 
-The epidemiology of the 2019-nCov is poorly understood.
-Here we develop a model for the trajectory of 2019-nCov during the early-to-middle stages of transmission in Georgia, USA.
+The epidemiology of the SARS-CoV-2 is poorly understood.
+Here we develop a model for the trajectory of SARS-CoV-2 during the early-to-middle stages of transmission in Georgia, USA.
 This model is being used for inference, forecasting, or scenario analysis.
 
 Key features of this model include:
@@ -46,7 +46,7 @@ Key features of this model include:
 This model contains both fixed and fitted parameter values.
 Fixed parameters were defined using clinical outcome reports.
 Non-fixed parameters values were found by fitting the model to incident case and death reports, as described in more detail below.
-The pandemic of 2019-nCov is still evolving and information that was used in the construction of this model may be incomplete or contain errors.
+The pandemic of SARS-CoV-2 is still evolving and information that was used in the construction of this model may be incomplete or contain errors.
 Accordingly, these results are preliminary, provisional, and subject to change.
 These results have not been peer-reviewed, but have been prepared to a professional standard with the intention of providing useful interpretation of a rapidly developing event. 
 
@@ -103,7 +103,7 @@ ggplot(covar, aes(x = Date, y = rel_beta_change)) +
 The model comprises susceptible, pre-symptomatic, asymptomatic, symptomatic, diagnosed, hospitalized, deceased, and recovered persons. 
 The following compartments are included:  
 
-* $\boldsymbol{S}$ - Uninfected and *susceptible* individuals. Susceptible individuals can become infected by individuals in the $E$, $I_a$, $I_{su}$, $I_{sd}$, $C$, and $H$ stages. Rates of transmission from these stages can be adjusted individually.
+* $\boldsymbol{S}$ - Uninfected and *susceptible* individuals. Susceptible individuals can become infected by individuals in the $L$, $I_a$, $I_{su}$, $I_{sd}$, $C$, and $H$ stages. Rates of transmission from these stages can be adjusted individually.
 * $\boldsymbol{L}$ - Individuals with *latent* infections who do not yet show symptoms. Those individuals can be infectious. At the end of the $L$ stage, a fraction moves into the $I_a$ stage, another fraction moves into the $I_{su}$ stage, and the remainder into the $I_{sd}$ stage.
 * $\boldsymbol{I_a}$ - Individuals who are infected and *asymptomatic*. Those individuals are likely infectious, but the model allows to adjust this.
 * $\boldsymbol{I_{su}}$ - Individuals who are infected and *symptomatic*, but are *undetected*. Those individuals are likely infectious. Individuals in this compartment never get diagnosed, and are assumed to recover.
@@ -113,7 +113,7 @@ The following compartments are included:
 * $\boldsymbol{R}$ - *Recovered/removed* individuals. Those individuals have recovered and are immune. 
 * $\boldsymbol{D}$ - Individuals who *died* from the infection. 
 
-To allow more realistic distributions of movement through compartments, several of these compartments are internally split into multiple stages using the *linear chain trick*.[^2]
+To allow more realistic distributions of movement through compartments, several of these compartments are internally split into multiple stages using the *linear chain trick*.^[Hurtado and Kirosingh 2019 (https://link.springer.com/article/10.1007/s00285-019-01412-w)]
 
 * $\boldsymbol{L}$ - 4 compartments
 * $\boldsymbol{I_a}$ - 4 compartments 
@@ -136,10 +136,13 @@ $$
 \text{logit}\left(\psi(t)\right) = \sum_{i=1}^K q_i \xi_{i_t},
 $$
 
-where $K$ is the number of knots, $\mathbf{q}$ is a vector of spline coefficients (to be fitted), and $\mathbf{\xi}$ is a matrix basis functions.
-We define the number of knots ($K$) as the number of days in the data set divided by 10 (so, one knot every 10 days).
+where $K$ is the number of basis functions, $\mathbf{q}$ is a vector of spline coefficients (to be fitted), and $\mathbf{\xi}$ is a matrix basis functions.
+We define the number of basis functions ($K$) as the number of days in the data set divided by 10 (so, one function for every 10 days).
 Note the logit transformation to go from the linear scale to the 0 - 1 scale.
 We used cubic basis functions from the **pomp** function `pomp::bspline_basis()`.
+
+We also included stochastic process noise on the rate of tranmission ($\beta(t)$) at each time step, such that $\beta(t) = \frac{\beta}{N} \psi(t) \phi(t) \Gamma(t)$.
+$\Gamma(t)$ is modeled as gamma-distributed white noise (temporally uncorrelated noise) with mean 1 and variance $\sigma^2$^[Bretó and Ionides 2011 (https://www.sciencedirect.com/science/article/pii/S0304414911001761)], which we fit.
 
 Interventions enter our model in three ways.
 The first is through the augmentation of $\beta$ by the mobility covariate ($\phi$) and the latent trend process ($\psi$).
@@ -147,6 +150,23 @@ The second is through an increase in the fraction of exposed individuals that ar
 This fraction ($q$) starts at a low level of 0.1 and then, starting on March 30, slowly ramps up to 0.4.
 Third, the time to diagnosis ($s$) decreases over time, ramping up starting on March 30.
 The interventions on $q$ and $s$ are applied with a sigmoid function, rather than a linear change over time.
+
+We assume that new, daily case reports arise from a negative binomial distribution whose central tendency is captured by the flow of individuals from $I_{sd4}$ to $C_1$ (see flow diagram above).
+Let this quantity be $C_{\text{new}}$.
+Similarly, we assume that new, daily death resports arise from a negative binomial distribution whose central tendency is captured by the flow of individuals from $C_4$ to $D$.
+Let this quantity be $D_{\text{new}}$.
+Then, for both new cases and deaths, we model the observation process as:
+
+$$
+\text{cases}(t) \sim \text{NB}\left(C_{\text{new}}(t), \theta_C \right), \\
+\text{deaths}(t) \sim \text{NB}\left(D_{\text{new}}(t), \theta_D \right),
+$$
+
+where $\theta_C$ and $\theta_D$ are the negative binomial dispersion parameters for cases and deaths, respectively.
+Note that $\text{cases}(t)$ and $\text{deaths}(t)$ are the observed number of cases or deaths reported on day *t*, as shown in the data figure at the top of this document.
+
+We implemented the above model using the R package **pomp** version 2.7.1.0^[King et al. 2016 (https://www.jstatsoft.org/article/view/v069i12) and King et al. 2020 (https://kingaa.github.io/pomp/)].
+All transitions among the compartments in our model were modeled using the Euler multinomial approximation (`reulermultinom` in **pomp** syntax) given the size of the "donating" compartment and the specified or fitted rate of transition.
 
 ## Model Fitting
 We fit the model using Maximization by Iterated particle Filtering (MIF).
