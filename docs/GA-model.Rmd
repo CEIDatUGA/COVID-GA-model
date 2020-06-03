@@ -3,6 +3,7 @@ title: "A stochastic model for the transmission of 2019-nCov in Georgia, USA"
 author: 
   - John M. Drake^[Odum School of Ecology and Center for the Ecology of Infectious Diseases, University of Georgia]
   - Andreas Handel^[Department of Epidemiology and Biostatistics and Center for the Ecology of Infectious Diseases, University of Georgia]
+  - Eamon O'Dea^[Odum School of Ecology and Center for the Ecology of Infectious Diseases, University of Georgia] 
   - Andrew T. Tredennick^[Western EcoSystems Technology, Inc.]
 date: "`r format(Sys.time(), '%B %d, %Y')`"
 header-includes:
@@ -36,7 +37,7 @@ Key features of this model include:
 
 1. Stochastic transmission process. Stochastic models are models with a realistic level of random variation. Stochastic models are essential for proper modeling of systems that start with a small number of infections.
 2. Realistic interval distributions for presymptomatic and symptomatic periods.
-3. Transmission is allowed at different rates for asymptomatic, presymptomatic, and symptomatic individuals.[^1]
+3. Transmission is allowed at different rates for asymptomatic, presymptomatic, and symptomatic individuals.
 4. Time varying rates of case detection, isolation, and case notification.
 5. Realistic intervention scenarios.
 6. Affect of human mobility on transmission (i.e., social distancing)
@@ -56,7 +57,7 @@ These results have not been peer-reviewed, but have been prepared to a professio
 We fit the model to incident case and death reports for Georgia, as collated by <a href="covidtracking.com" target="_blank">The COVID Tracking Project</a>.
 
 
-```{r read-data}
+```{r read-data, fig.height = 3}
 filenames <- list.files(path = here("output/"), pattern = "Georgia_COV")
 filename <- tail(sort(filenames[grep("*mif.rds", filenames)]), 1)
 fullpath <- paste0("output/", filename)
@@ -68,7 +69,7 @@ data <- readRDS(here(fullpath))$pomp_data %>%
   gather("key", "value", -Date)
 
 ggplot(data, aes(x = Date, y = value)) +
-  geom_col(size = 1) +
+  geom_col(width = 0.3) +
   ylab("Number of persons") +
   facet_wrap(~key, scales = "free", nrow = 2) +
   theme_minimal(base_size = 14, base_line_size = 0.5)
@@ -79,7 +80,7 @@ These data come from <a href="https://www.unacast.com/" target="_blank">unacast<
 We smooth the raw data from unacast using a spline fit, resulting in the trajectory of human movement shown below.
 This covariate is used to reduce baseline transmission.
 
-```{r covariate, fig.height=3}
+```{r covariate, fig.height=2, fig.width=4}
 filenames <- list.files(path = here("output/"), pattern = "Georgia_COV")
 filename <- tail(sort(filenames[grep("*mif.rds", filenames)]), 1)
 fullpath <- paste0("output/", filename)
@@ -92,7 +93,7 @@ ggplot(covar, aes(x = Date, y = rel_beta_change)) +
   geom_line(size = 1) +
   ylab("Human movement\n(% of normal)") +
   scale_y_continuous(limits = c(0,1)) +
-  theme_minimal(base_size = 14, base_line_size = 0.5)
+  theme_minimal(base_line_size = 0.5)
 ```
 
 
@@ -138,6 +139,7 @@ $$
 where $K$ is the number of knots, $\mathbf{q}$ is a vector of spline coefficients (to be fitted), and $\mathbf{\xi}$ is a matrix basis functions.
 We define the number of knots ($K$) as the number of days in the data set divided by 10 (so, one knot every 10 days).
 Note the logit transformation to go from the linear scale to the 0 - 1 scale.
+We used cubic basis functions from the **pomp** function `pomp::bspline_basis()`.
 
 Interventions enter our model in three ways.
 The first is through the augmentation of $\beta$ by the mobility covariate ($\phi$) and the latent trend process ($\psi$).
@@ -153,6 +155,20 @@ We estimated five parameters: baseline transmission rate ($\beta$), the fraction
 In addition, we estimated the basis function parameters ($q_i$), whose number depend on the length of the time series at the time of fitting.
 
 All other parameters were fixed at the following values:
+
+```{r params}
+rnms <- row.names(res$partable_natural)
+res$partable_natural %>%
+  mutate(Parameter = rnms) %>%
+  filter(is_fitted == "no") %>%
+  dplyr::select(-is_fitted) %>%
+  gather("key", "value", -Parameter) %>%
+  filter(key == "X1") %>%
+  filter(!Parameter %in% c("MIF_ID", "LogLik", "LogLik_SE")) %>%
+  dplyr::select(-key) %>%
+  knitr::kable(digits = 2, format = "html") %>%
+  kableExtra::kable_styling(full_width = F)
+```
 
 MIF relies on particle filtering, which estimates the likelihood of fixed parameters by integrating state variables of a stochastic system.
 To narrow in on the maximum likelihood estimates, MIF lets parameters take a random walk during the filtering process and selectively propagates forward parameter sets (i.e., particles) with the highest likelihood.
@@ -205,8 +221,10 @@ m_id <- which(rownames(pars) == "frac_dead")
 mle_pars <- pars[,2]
 beta_est <- mle_pars[beta_id] * mle_pars[s_id]
 m_est <- mle_pars[m_id]
+llmle <- pars[which(rownames(pars) == "LogLik"), 2]
 ```
 
+The log likelihood of the highest MLE parameter set is `r round(llmle, 2)`.
 Our current estimate of baseline transmission rate is `r round(beta_est, 2)`.
 Our current estimate of the fraction of hospitalized cases that result in death is `r round(m_est, 2)`.
 Transmission rate is not constant in our model, however.
@@ -263,7 +281,7 @@ Here we show the fit our model to the data.
 We plot the trajectory used for determining initial conditions for projections from each MLE parameter set within 2 log likelihood points of the maximum.
 In the plots, dashed lines are the data, solid blue lines are the mean trajectories across MLE sets, and the lighter blue lines are the trajectories from individual MLE sets.
 
-```{r fits}
+```{r fits, fig.height=3}
 most_recent_files <- tail(list.files(path = here("output"), "Georgia_COV"), 3)
 filename_sims <- most_recent_files[grep(pattern = "simulation-scenarios", most_recent_files)]
 simfile <- here('output', filename_sims)
@@ -376,8 +394,57 @@ maeTotal <- maeByDate %>%
 Overall, the MAE of our model for cases is `r maeTotal %>% filter(key == "cases") %>% pull(mmae)`.
 The MAE of our model for deaths is `r maeTotal %>% filter(key == "deaths") %>% pull(mmae)`.
 
+Our initial forecasts with this model anticipated an upward trajectory in cases and deaths that did not materialize (see plots below).
+The most recent forecast shows much improvement.
+
 ```{r forecasts}
 forecast_files <- list.files("../output/forecasts/", pattern = ".csv")
+tmp <- read.csv(paste0("../output/forecasts/", forecast_files[1])) %>%
+  filter(type == "quantile") %>%
+  filter(grepl("day ahead inc death", target)) %>%
+  mutate(target_end_date = as.Date(target_end_date))
+foredate <- min(as.Date(tmp$forecast_date))
+ggplot() +
+  geom_line(data = tmp, aes(x = target_end_date, y = value, color = quantile, group = quantile)) +
+  geom_line(data = res$pomp_data, aes(x = Date, y = deaths), size = 1, color = "white") +
+  scale_color_viridis_c() +
+  theme_dark() +
+  scale_y_continuous(limits = c(0,250)) +
+  ylab("Number of\nreported deaths") +
+  xlab("Date") +
+  ggtitle(paste0("Forecast date: ", foredate)) -> g1
+
+tmp <- read.csv(paste0("../output/forecasts/", forecast_files[2])) %>%
+  filter(type == "quantile") %>%
+  filter(grepl("day ahead inc death", target)) %>%
+  mutate(target_end_date = as.Date(target_end_date))
+foredate <- min(as.Date(tmp$forecast_date))
+ggplot() +
+  geom_line(data = tmp, aes(x = target_end_date, y = value, color = quantile, group = quantile)) +
+  geom_line(data = res$pomp_data, aes(x = Date, y = deaths), size = 1, color = "white") +
+  scale_color_viridis_c() +
+  theme_dark() +
+  scale_y_continuous(limits = c(0,250)) +
+  ylab("Number of\nreported deaths") +
+  xlab("Date") +
+  ggtitle(paste0("Forecast date: ", foredate)) -> g2
+
+tmp <- read.csv(paste0("../output/forecasts/", forecast_files[3])) %>%
+  filter(type == "quantile") %>%
+  filter(grepl("day ahead inc death", target)) %>%
+  mutate(target_end_date = as.Date(target_end_date))
+foredate <- min(as.Date(tmp$forecast_date))
+ggplot() +
+  geom_line(data = tmp, aes(x = target_end_date, y = value, color = quantile, group = quantile)) +
+  geom_line(data = res$pomp_data, aes(x = Date, y = deaths), size = 1, color = "white") +
+  scale_color_viridis_c() +
+  theme_dark() +
+  scale_y_continuous(limits = c(0,250)) +
+  ylab("Number of\nreported deaths") +
+  xlab("Date") +
+  ggtitle(paste0("Forecast date: ", foredate)) -> g3
+
+cowplot::plot_grid(g1, g2, g3, nrow = 3)
 ```
 
 ## Model Projections
