@@ -178,7 +178,7 @@ All other parameters were fixed at the following values:
 
 ```{r params}
 rnms <- row.names(res$partable_natural)
-
+nbetas <- length(grep("b", rnms)) - 2
 des_string <- c("MIF id", "Log Likelihood", "SE of Log Likelihood", 
                 "Transmission rate", 
                 "Relative transmissibility of latent infections",
@@ -205,7 +205,7 @@ des_string <- c("MIF id", "Log Likelihood", "SE of Log Likelihood",
                 "Dispersion parameter for hospitalization reporting observation process",
                 "Dispersion parameter for death reporting obsercation process",
                 "Variance of the stochastics process noise",
-                rep("Spline coefficient", 9),
+                rep("Spline coefficient", nbetas),
                 "Initial number of susceptible individuals",
                 "Initial number of latent infectious individuals",
                 "Initial number of asymptomatic individuals",
