@@ -132,8 +132,8 @@ knitr::include_graphics(here("docs",'pomp-model.png'))
 We implemented the above model using the R package **pomp** version 2.7.1.0^[King et al. 2016 (https://www.jstatsoft.org/article/view/v069i12) and King et al. 2020 (https://kingaa.github.io/pomp/)].
 All transitions among the compartments in our model were modeled using the Euler multinomial approximation (`reulermultinom` in **pomp** syntax) given the size of the "donating" compartment and the specified or fitted rate of transition.
 
-Note that the force of infection ($f$) at time $t$ is: $f(t) = \psi(t)\phi(t)\frac{\beta}{N} \left(I(t) \right)$, where, for simplicity, $I$ stands for all infectious individuals at time $t$,
-$\phi(t)$ is the human mobiltiy metric shown in the figure above, and
+Note that tranmission rate at time $t$ is $\omega(t) = \frac{\beta}{N} \psi(t) \phi(t) \Gamma(t)$, resulting the force of infection $f(t) = \omega(t) \left(I(t) \right)$, where, for simplicity, $I$ stands for all infectious individuals at time $t$.
+$\phi(t)$ is the human mobiltiy metric shown in the figure above.
 $\psi(t)$ is the result of a latent trend process that is modeled using a fitted spline:
 
 $$
@@ -145,7 +145,7 @@ We define the number of basis functions ($K$) as the number of days in the data 
 Note the logit transformation to go from the linear scale to the 0 - 1 scale.
 We used cubic basis functions from the **pomp** function `pomp::bspline_basis()`.
 
-We also included  process noise on the rate of tranmission ($\beta(t)$) at each time step, such that $\beta(t) = \frac{\beta}{N} \psi(t) \phi(t) \Gamma(t)$.
+We also included  process noise ($\Gamma(t)$) on the rate of tranmission ($\omega(t)$) at each time step.
 $\Gamma(t)$ is modeled as gamma-distributed white noise (temporally uncorrelated noise) with mean 1 and variance $\sigma^2$^[Bretó and Ionides 2011 (https://www.sciencedirect.com/science/article/pii/S0304414911001761)], which we fit.
 
 Interventions enter our model in three ways.
@@ -197,7 +197,7 @@ des_string <- c("MIF id", "Log Likelihood", "SE of Log Likelihood",
                 "Time at which diagnosis is at 50% of max (in days since March 1)",
                 "Maximum fraction of cases that are detected",
                 "Speed at which fraction detected ramps up",
-                "Time at which infection detection fraction is at 50% of max",
+                "Time at which infection detection fraction is at 50% of max (days since March 1)",
                 "Minimum fraction detected at March 1",
                 "Fraction of latent infections that move to aysmptomatic",
                 "Fraction of detected cases that are hospitalized",
@@ -207,15 +207,15 @@ des_string <- c("MIF id", "Log Likelihood", "SE of Log Likelihood",
                 "Dispersion parameter for death reporting obsercation process",
                 "Variance of the stochastics process noise",
                 rep("Spline coefficient", nbetas),
-                "Initial number of susceptible individuals",
-                "Initial number of latent infectious individuals",
-                "Initial number of asymptomatic individuals",
-                "Initial number of symptomatic, undetected individuals",
-                "Initial number of symptomatic, detected individuals",
-                "Initial number of diagnosed cases",
-                "Initial number of hospitalized cases",
-                "Initial number of recovered individuals",
-                "Initial number of deaths after hospitalization",
+                "Initial number of susceptible individuals on March 1",
+                "Initial number of latent infectious individuals on March 1",
+                "Initial number of asymptomatic individuals on March 1",
+                "Initial number of symptomatic, undetected individuals on March 1",
+                "Initial number of symptomatic, detected individuals on March 1",
+                "Initial number of diagnosed cases on March 1",
+                "Initial number of hospitalized cases on March 1",
+                "Initial number of recovered individuals on March 1",
+                "Initial number of deaths after hospitalization on March 1",
                 "Trend")
 
 params_map <- tibble(Parameter = rnms,
@@ -228,8 +228,9 @@ res$partable_natural %>%
   gather("key", "value", -Parameter) %>%
   filter(key == "X1") %>%
   left_join(params_map, by = "Parameter") %>%
-  filter(!Parameter %in% c("MIF_ID", "LogLik", "LogLik_SE", "trend_start")) %>%
+  filter(!Parameter %in% c("MIF_ID", "LogLik", "LogLik_SE", "trend_start", "theta_hosps")) %>%
   dplyr::select(Parameter, Description, value) %>%
+  mutate(Parameter = ifelse(Parameter == "E1_0", "L1_0", Parameter)) %>%
   knitr::kable(digits = 2, format = "html") %>%
   kableExtra::kable_styling(full_width = F)
 ```
@@ -250,7 +251,7 @@ We use all parameter sets with log likelihoods within 2 of the maximum when fore
 
 ## Model Assessment
 We assess our model in two ways.
-First, we calculate the mean absolute error (MAE) of the model by comparing in-sample predictions to the observed data.
+First, we calculate the mean absolute error (MAE) of the model by comparing in-sample simulation trajectories to the observed data.
 To do so, we simulate 100 trajectories from the model from all parameter sets within 2 points of the maximum log likelihood.
 We then calculate the MAE for each data point across the replicate simulations and then take the average MAE over the time series.
 We do this independently for case and death data.
@@ -435,7 +436,7 @@ ggplot() +
   theme_minimal(base_size = 14, base_line_size = 0.5)
 ```
 
-Mean absolute error of our model has remained relatively constant over the past few weeks (see plot below).
+<!-- Within-sample mean absolute error of our model has remained relatively constant over the past few weeks (see plot below). -->
 
 ```{r errors, fig.height=2.5}
 dat <- res$pomp_data %>%
@@ -468,12 +469,12 @@ out_sims %>%
   ungroup() %>%
   left_join(res$pomp_data[,c("time", "Date")], by = "time") -> maeByDate
 
-ggplot(data = maeByDate, aes(x = Date, y = mae)) +
-  geom_line() +
-  facet_wrap(~key, scales = "free_y") +
-  ggtitle("Mean absolute error over time") +
-  ylab("MAE") +
-  theme_minimal(base_size = 14, base_line_size = 0.5)
+# ggplot(data = maeByDate, aes(x = Date, y = mae)) +
+#   geom_line() +
+#   facet_wrap(~key, scales = "free_y") +
+#   ggtitle("Mean absolute error over time") +
+#   ylab("MAE") +
+#   theme_minimal(base_size = 14, base_line_size = 0.5)
 
 maeTotal <- maeByDate %>%
   group_by(key) %>%
