@@ -133,10 +133,10 @@ $\phi(t)$ is the human mobiltiy metric shown in the figure above.
 $\psi(t)$ is the result of a latent trend process that is modeled using a fitted spline:
 
 $$
-\text{logit}\left(\psi(t)\right) = \sum_{i=1}^K q_i \xi_{i_t},
+\text{logit}\left(\psi(t)\right) = \sum_{i=1}^K g_i \xi_{i_t},
 $$
 
-where $K$ is the number of basis functions, $\mathbf{q}$ is a vector of spline coefficients (to be fitted), and $\mathbf{\xi}$ is a matrix basis functions.
+where $K$ is the number of basis functions, $\mathbf{g}$ is a vector of spline coefficients (to be fitted), and $\mathbf{\xi}$ is a matrix basis functions.
 We define the number of basis functions ($K$) as the number of days in the data set divided by 10 (so, one function for every 10 days).
 Note the logit transformation to go from the linear scale to the 0 - 1 scale.
 We used cubic basis functions from the **pomp** function `pomp::bspline_basis()`.
@@ -146,15 +146,15 @@ $\Gamma(t)$ is modeled as gamma-distributed white noise (temporally uncorrelated
 
 Interventions enter our model in three ways.
 The first is through the augmentation of $\beta$ by the mobility covariate ($\phi$) and the latent trend process ($\psi$).
-The second is through an increase in the fraction of exposed individuals that are detected and flow into the *Isd* compartments.
+The second is through an increase in the fraction of exposed individuals that are detected and flow into the $I_{sd}$ compartments.
 This fraction ($q$) starts at a low level of 0.1 and then, starting on March 30, slowly ramps up to 0.4.
 Third, the time to diagnosis ($s$) decreases over time, ramping up starting on March 30.
 The interventions on $q$ and $s$ are applied with a sigmoid function, rather than a linear change over time.
 
 We assume that new, daily case reports arise from a negative binomial distribution whose central tendency is captured by the flow of individuals from $I_{sd4}$ to $C_1$ (see flow diagram above).
-Let this quantity be $C_{\text{new}}$.
+Let this quantity be $C_{\text{new}}$, which accumulates over the course of one day in the simulation model and resets to zero at the end of each day (the model is simulated at a time step of 1/20 days).
 Similarly, we assume that new, daily death resports arise from a negative binomial distribution whose central tendency is captured by the flow of individuals from $C_4$ to $D$.
-Let this quantity be $D_{\text{new}}$.
+Let this quantity be $D_{\text{new}}$, which accumulates over the course of one day in the simulation model and resets to zero at the end of each day.
 Then, for both new cases and deaths, we model the observation process as:
 
 $$
@@ -170,22 +170,65 @@ All transitions among the compartments in our model were modeled using the Euler
 
 ## Model Fitting
 We fit the model using Maximization by Iterated particle Filtering (MIF).
-Observations (daily case and death reports) were modeled as arising from a negative binomial reporting process.
+Observations (daily case and death reports) were modeled as arising from a negative binomial reporting process (see above).
 We estimated five parameters: baseline transmission rate ($\beta$), the fraction of hospitalized cases that result in death ($m$), a parameter accounting for extra-demographic process noise ($\sigma$), and two negative binomial dispersion parameters ($\theta_c$ and $\theta_d$).
-In addition, we estimated the basis function parameters ($q_i$), whose number depend on the length of the time series at the time of fitting.
+In addition, we estimated the basis function parameters ($g_i$), whose number depend on the length of the time series at the time of fitting.
 
 All other parameters were fixed at the following values:
 
 ```{r params}
 rnms <- row.names(res$partable_natural)
+
+des_string <- c("MIF id", "Log Likelihood", "SE of Log Likelihood", 
+                "Transmission rate", 
+                "Relative transmissibility of latent infections",
+                "Relative transmissibility of asymptomatic individuals",
+                "Relative transmissibility of detected symptomatic individuals post-reporting",
+                "Relative transmissibility of hospitalized individuals",
+                "Time spent in latent compartments (days)",
+                "Time spent in asymptomatic compartments (days)",
+                "Time spent in symptomatic, undetected compartments (days)",
+                "Time spent in symptomatic, detected compartments (days)",
+                "Time spent in diagnosed cases compartments (days)",
+                "Time spent in hospitalized compartments (days)",
+                "Maximum for factor by which movement through Isd happens faster (quicker diagnosis)",
+                "Rate at which faster diagnosis ramps up to max",
+                "Time at which diagnosis is at 50% of max (in days since March 1)",
+                "Maximum fraction of cases that are detected",
+                "Speed at which fraction detected ramps up",
+                "Time at which infection detection fraction is at 50% of max",
+                "Minimum fraction detected at March 1",
+                "Fraction of latent infections that move to aysmptomatic",
+                "Fraction of detected cases that are hospitalized",
+                "Fraction of hospitalizations that result in death",
+                "Dispersion parameter for case reporting observation process",
+                "Dispersion parameter for hospitalization reporting observation process",
+                "Dispersion parameter for death reporting obsercation process",
+                "Variance of the stochastics process noise",
+                rep("Spline coefficient", 9),
+                "Initial number of susceptible individuals",
+                "Initial number of latent infectious individuals",
+                "Initial number of asymptomatic individuals",
+                "Initial number of symptomatic, undetected individuals",
+                "Initial number of symptomatic, detected individuals",
+                "Initial number of diagnosed cases",
+                "Initial number of hospitalized cases",
+                "Initial number of recovered individuals",
+                "Initial number of deaths after hospitalization",
+                "Trend")
+
+params_map <- tibble(Parameter = rnms,
+                     Description = des_string)
+
 res$partable_natural %>%
   mutate(Parameter = rnms) %>%
   filter(is_fitted == "no") %>%
   dplyr::select(-is_fitted) %>%
   gather("key", "value", -Parameter) %>%
   filter(key == "X1") %>%
-  filter(!Parameter %in% c("MIF_ID", "LogLik", "LogLik_SE")) %>%
-  dplyr::select(-key) %>%
+  left_join(params_map, by = "Parameter") %>%
+  filter(!Parameter %in% c("MIF_ID", "LogLik", "LogLik_SE", "trend_start")) %>%
+  dplyr::select(Parameter, Description, value) %>%
   knitr::kable(digits = 2, format = "html") %>%
   kableExtra::kable_styling(full_width = F)
 ```
@@ -197,7 +240,7 @@ This procedure converges toward the maximimum likelihood estimates (MLEs), in th
 
 We used the IF2 algorithm^[Ionides et al. 2015 (https://www.pnas.org/content/112/3/719)] implemented in the R^[R Core Team 2019 (https://www.r-project.org/)] package **pomp** version 2.7.1.0^[King et al. 2016 (https://www.jstatsoft.org/article/view/v069i12) and King et al. 2020 (https://kingaa.github.io/pomp/)] to conduct the MIF procedure.
 To initialize MIF, we generated 30 parameter sets with values normally distributed around our prior expectations based on a literature review and line list data.
-We then performed two round of MIF, each for 150 iterations, with 2,000 particles, and geometric cooling.
+We then performed two rounds of MIF, each for 150 iterations with 2,000 particles and geometric cooling.
 For the first round of MIF we set `cooling.factor = 0.9`.
 For the second round of MIF, which simply continues from where the first round stopped, we set `cooling.factor = 0.7`.
 We then computed the log likelihood of the 30 final MIF parameter sets (i.e., parameter sets collected after 300 MIF iterations) as the log of the mean likelihoods of 10 replicate particle filters with 5,000 particles each.
@@ -248,7 +291,7 @@ The log likelihood of the highest MLE parameter set is `r round(llmle, 2)`.
 Our current estimate of baseline transmission rate is `r round(beta_est, 2)`.
 Our current estimate of the fraction of hospitalized cases that result in death is `r round(m_est, 2)`.
 Transmission rate is not constant in our model, however.
-Below we plot the estimated latent trend ($\psi$), the mobility covariate ($\phi$), and the resulting trend in transmission over time ($\phi(t) \psi(t) \beta$).
+Below we plot the estimated latent trend ($\psi$), the mobility covariate ($\phi$), and the resulting trend in transmission over time ($\beta(t) = \phi(t) \psi(t) \beta$).
 
 ```{r betatime, fig.width=8.5, fig.height=3}
 dates <- unique(pomp_data$Date)
