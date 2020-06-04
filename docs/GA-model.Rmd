@@ -285,9 +285,34 @@ mle_pars <- pars[,2]
 beta_est <- mle_pars[beta_id] * mle_pars[s_id]
 m_est <- mle_pars[m_id]
 llmle <- pars[which(rownames(pars) == "LogLik"), 2]
+
+loglik_naive <- function(y){
+  res <- diff(y)
+  sigma <- sd(res, na.rm = TRUE)
+  densities <- dnorm(res, sd = sigma, log = TRUE)
+  sum(densities)
+}
+cnll <- loglik_naive(pomp_data$cases[!is.na(pomp_data$cases)])
+dnll <- loglik_naive(pomp_data$deaths[!is.na(pomp_data$deaths)])
+nll <- cnll + dnll
 ```
 
 The log likelihood of the highest MLE parameter set is `r round(llmle, 2)`.
+For comparsion, the log likelihood of a simple random walk model is `r round(nll, 2)`.
+We defined the random walk as $x(t+1) = x(t) + \sigma$, where $x$ is the variable of interest (reported cases or deaths) and $\sigma$ is the standard deviation of the of the time series up to time $t$.
+We calculated the log likelihood of the random walk model using the following R code:
+
+```{r nll, eval = FALSE, echo = TRUE}
+loglik_naive <- function(y){
+  res <- diff(y)
+  sigma <- sd(res, na.rm = TRUE)
+  densities <- dnorm(res, sd = sigma, log = TRUE)
+  sum(densities)
+}
+```
+
+We calculated the log likelihood of the random walk model for cases and deaths independently and then sum them to arrive a a joint log likelihood analogous to the one evaluated by the **pomp** particle filter for the SEIR model.
+
 Our current estimate of baseline transmission rate is `r round(beta_est, 2)`.
 Our current estimate of the fraction of hospitalized cases that result in death is `r round(m_est, 2)`.
 Transmission rate is not constant in our model, however.
