@@ -18,6 +18,7 @@ output:
 knitr::opts_chunk$set(include=TRUE, echo=FALSE, warning=FALSE, message=FALSE)
 library(here)
 library(tidyverse)
+library(cowplot)
 ```
 
 ---
@@ -29,9 +30,9 @@ All code and data needed to reproduce our results can be found in our public Git
 
 # Introduction
 
-The epidemiology of the SARS-CoV-2 is poorly understood.
-Here we develop a model for the trajectory of SARS-CoV-2 during the early-to-middle stages of transmission in Georgia, USA.
-This model is being used for inference, forecasting, or scenario analysis.
+The epidemiology of SARS-CoV-2 is poorly understood.
+Here we develop a model for the transmission of SARS-CoV-2 from March 2020 through May 2020 in Georgia, USA.
+This model is being used for inference, forecasting, and scenario analysis.
 
 Key features of this model include:
 
@@ -40,12 +41,12 @@ Key features of this model include:
 3. Transmission is allowed at different rates for asymptomatic, presymptomatic, and symptomatic individuals.
 4. Time varying rates of case detection, isolation, and case notification.
 5. Realistic intervention scenarios.
-6. Affect of human mobility on transmission (i.e., social distancing)
-7. A latent process that allows transmission to vary over time due to environmental factors and other behavioral measures that can reduce transmission but are difficult to include with data (e.g., wearing face masks)
+6. Affect of human mobility on transmission (i.e., social distancing).
+7. A latent process that allows transmission to vary over time due to environmental factors and other behavioral measures that can reduce transmission but are difficult to include with data (e.g., wearing face masks).
 
 This model contains both fixed and fitted parameter values.
 Fixed parameters were defined using clinical outcome reports.
-Non-fixed parameters values were found by fitting the model to incident case and death reports, as described in more detail below.
+Fitted parameters values were found by calibration to incident case and death reports, as described in more detail below.
 The pandemic of SARS-CoV-2 is still evolving and information that was used in the construction of this model may be incomplete or contain errors.
 Accordingly, these results are preliminary, provisional, and subject to change.
 These results have not been peer-reviewed, but have been prepared to a professional standard with the intention of providing useful interpretation of a rapidly developing event. 
@@ -76,8 +77,8 @@ ggplot(data, aes(x = Date, y = value)) +
 ```
 
 In addition, we include a covariate that describes human mobility.
-These data come from <a href="https://www.unacast.com/" target="_blank">unacast</a>.
-We smooth the raw data from unacast using a spline fit, resulting in the trajectory of human movement shown below.
+These data come from <a href="https://www.unacast.com/" target="_blank">Unacast</a>.
+We smooth the raw data from Unacast using a spline fit, resulting in the trajectory of human movement shown below.
 This covariate is used to reduce baseline transmission.
 
 ```{r covariate, fig.height=2, fig.width=4}
@@ -105,9 +106,9 @@ The following compartments are included:
 
 * $\boldsymbol{S}$ - Uninfected and *susceptible* individuals. Susceptible individuals can become infected by individuals in the $L$, $I_a$, $I_{su}$, $I_{sd}$, $C$, and $H$ stages. Rates of transmission from these stages can be adjusted individually.
 * $\boldsymbol{L}$ - Individuals with *latent* infections who do not yet show symptoms. Those individuals can be infectious. At the end of the $L$ stage, a fraction moves into the $I_a$ stage, another fraction moves into the $I_{su}$ stage, and the remainder into the $I_{sd}$ stage.
-* $\boldsymbol{I_a}$ - Individuals who are infected and *asymptomatic*. Those individuals are likely infectious, but the model allows to adjust this.
-* $\boldsymbol{I_{su}}$ - Individuals who are infected and *symptomatic*, but are *undetected*. Those individuals are likely infectious. Individuals in this compartment never get diagnosed, and are assumed to recover.
-* $\boldsymbol{I_{sd}}$ - Individuals who are infected and *symptomatic*, and are *detected*. Those individuals are likely infectious. Individuals in this compartment will get diagnosed and move to $C$.
+* $\boldsymbol{I_a}$ - Individuals who are *infected* and *asymptomatic*. Those individuals are likely infectious, but the model allows to adjust this.
+* $\boldsymbol{I_{su}}$ - Individuals who are *infected* and *symptomatic*, but are *undetected*. Those individuals are likely infectious. Individuals in this compartment never get diagnosed, and are assumed to recover.
+* $\boldsymbol{I_{sd}}$ - Individuals who are *infected* and *symptomatic*, and are *detected*. Those individuals are likely infectious. Individuals in this compartment will be diagnosed and move to $C$.
 * $\boldsymbol{C}$ - Individuals who have been diagnosed as *cases*. Those individuals are likely isolated and not infectious, but the model allows to adjust this. A fraction of individuals in the $C$ stage will naturally recover, without the need for hospitalization. The remainder moves into the $H$ stage.
 * $\boldsymbol{H}$ - Individuals who have been *hospitalized*. Those individuals are likely isolated and not infectious, but the model allows to adjust this. A fraction of individuals in the $H$ stage will recover, the remainder will die.
 * $\boldsymbol{R}$ - *Recovered/removed* individuals. Those individuals have recovered and are immune. 
@@ -128,8 +129,11 @@ The flow diagram for this model shown below.
 knitr::include_graphics(here("docs",'pomp-model.png'))
 ```
 
-Note that the force of infection ($f$) at time $t$ is: $f(t) = \psi(t)\phi(t)\frac{\beta}{N} \left(I(t) \right)$, where, for simplicity, $I$ stands for all infectious individuals at time $t$.
-$\phi(t)$ is the human mobiltiy metric shown in the figure above.
+We implemented the above model using the R package **pomp** version 2.7.1.0^[King et al. 2016 (https://www.jstatsoft.org/article/view/v069i12) and King et al. 2020 (https://kingaa.github.io/pomp/)].
+All transitions among the compartments in our model were modeled using the Euler multinomial approximation (`reulermultinom` in **pomp** syntax) given the size of the "donating" compartment and the specified or fitted rate of transition.
+
+Note that the force of infection ($f$) at time $t$ is: $f(t) = \psi(t)\phi(t)\frac{\beta}{N} \left(I(t) \right)$, where, for simplicity, $I$ stands for all infectious individuals at time $t$,
+$\phi(t)$ is the human mobiltiy metric shown in the figure above, and
 $\psi(t)$ is the result of a latent trend process that is modeled using a fitted spline:
 
 $$
@@ -141,11 +145,11 @@ We define the number of basis functions ($K$) as the number of days in the data 
 Note the logit transformation to go from the linear scale to the 0 - 1 scale.
 We used cubic basis functions from the **pomp** function `pomp::bspline_basis()`.
 
-We also included stochastic process noise on the rate of tranmission ($\beta(t)$) at each time step, such that $\beta(t) = \frac{\beta}{N} \psi(t) \phi(t) \Gamma(t)$.
+We also included  process noise on the rate of tranmission ($\beta(t)$) at each time step, such that $\beta(t) = \frac{\beta}{N} \psi(t) \phi(t) \Gamma(t)$.
 $\Gamma(t)$ is modeled as gamma-distributed white noise (temporally uncorrelated noise) with mean 1 and variance $\sigma^2$^[Bretó and Ionides 2011 (https://www.sciencedirect.com/science/article/pii/S0304414911001761)], which we fit.
 
 Interventions enter our model in three ways.
-The first is through the augmentation of $\beta$ by the mobility covariate ($\phi$) and the latent trend process ($\psi$).
+The first is through the augmentation of $\beta$ by the mobility covariate ($\phi$) and the latent process ($\psi$).
 The second is through an increase in the fraction of exposed individuals that are detected and flow into the $I_{sd}$ compartments.
 This fraction ($q$) starts at a low level of 0.1 and then, starting on March 30, slowly ramps up to 0.4.
 Third, the time to diagnosis ($s$) decreases over time, ramping up starting on March 30.
@@ -158,15 +162,12 @@ Let this quantity be $D_{\text{new}}$, which accumulates over the course of one 
 Then, for both new cases and deaths, we model the observation process as:
 
 $$
-\text{cases}(t) \sim \text{NB}\left(C_{\text{new}}(t), \theta_C \right), \\
+\text{cases}(t) \sim \text{NB}\left(C_{\text{new}}(t), \theta_C \right), \text{and} \\
 \text{deaths}(t) \sim \text{NB}\left(D_{\text{new}}(t), \theta_D \right),
 $$
 
 where $\theta_C$ and $\theta_D$ are the negative binomial dispersion parameters for cases and deaths, respectively.
 Note that $\text{cases}(t)$ and $\text{deaths}(t)$ are the observed number of cases or deaths reported on day *t*, as shown in the data figure at the top of this document.
-
-We implemented the above model using the R package **pomp** version 2.7.1.0^[King et al. 2016 (https://www.jstatsoft.org/article/view/v069i12) and King et al. 2020 (https://kingaa.github.io/pomp/)].
-All transitions among the compartments in our model were modeled using the Euler multinomial approximation (`reulermultinom` in **pomp** syntax) given the size of the "donating" compartment and the specified or fitted rate of transition.
 
 ## Model Fitting
 We fit the model using Maximization by Iterated particle Filtering (MIF).
@@ -234,9 +235,9 @@ res$partable_natural %>%
 ```
 
 MIF relies on particle filtering, which estimates the likelihood of fixed parameters by integrating state variables of a stochastic system.
-To narrow in on the maximum likelihood estimates, MIF lets parameters take a random walk during the filtering process and selectively propagates forward parameter sets (i.e., particles) with the highest likelihood.
+To identify the maximum likelihood estimates, MIF lets parameters take a random walk during the filtering process and selectively propagates forward parameter sets (i.e., particles) with the highest likelihood.
 The variance of the random walk decreases at each iteration of MIF, where a MIF iteration means one filtering pass through the time series.
-This procedure converges toward the maximimum likelihood estimates (MLEs), in theory.
+In theory, this procedure converges toward the maximimum likelihood estimates (MLEs).
 
 We used the IF2 algorithm^[Ionides et al. 2015 (https://www.pnas.org/content/112/3/719)] implemented in the R^[R Core Team 2019 (https://www.r-project.org/)] package **pomp** version 2.7.1.0^[King et al. 2016 (https://www.jstatsoft.org/article/view/v069i12) and King et al. 2020 (https://kingaa.github.io/pomp/)] to conduct the MIF procedure.
 To initialize MIF, we generated 30 parameter sets with values normally distributed around our prior expectations based on a literature review and line list data.
@@ -257,7 +258,7 @@ We smoothed the observations using a 7-day moving average before calculating MAE
 
 Second, we evaluate the forecast performance of our model by comparing projections to new data.
 We make benchmark forecasts every Monday that are compared to new data as they emerge.
-This allows us to evaluate forecasts over a range of horizons.
+This allows us to evaluate forecasts over a range of prediction horizons.
 
 ## Projection Scenarios
 We use the fitted model to make projections under three scenarios.
@@ -559,5 +560,5 @@ knitr::include_graphics(here("output/figures/covidtracker-figures",'deaths-trajs
 ```
 
 # Next steps
-This model is currently being used primarily to make projections of the future transmission of COVID-19 to help inform public health officials as they make decisions about "re-opening." 
-In the near future, we will use the model to make more formal inference about key aspects of COVID-19 transmission such as the transmission rate over time and the fraction of asymptomatic cases.
+This model is currently being used primarily to make projections of the future transmission of COVID-19. It is hoped that it may help inform public health officials and individuals to make decisions about "re-opening." 
+In the near future, we hope to use the model to make more formal inference about key aspects of COVID-19 transmission such as the transmission rate over time and the fraction of asymptomatic cases.
