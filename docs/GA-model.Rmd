@@ -1,6 +1,10 @@
 ---
-title: "A stochastic model for the transmission of 2019-nCov in Georgia, USA"
-author: "John M. Drake, Andreas Handel, and Andrew T. Tredennick"
+title: "A stochastic model for the transmission of SARS-CoV-2 in Georgia, USA"
+author: 
+  - John M. Drake^[Odum School of Ecology and Center for the Ecology of Infectious Diseases, University of Georgia]
+  - Andreas Handel^[Department of Epidemiology and Biostatistics and Center for the Ecology of Infectious Diseases, University of Georgia]
+  - Eamon O'Dea^[Odum School of Ecology and Center for the Ecology of Infectious Diseases, University of Georgia] 
+  - Andrew T. Tredennick^[Western EcoSystems Technology, Inc.]
 date: "`r format(Sys.time(), '%B %d, %Y')`"
 header-includes:
   - \usepackage{amsmath}
@@ -14,37 +18,47 @@ output:
 knitr::opts_chunk$set(include=TRUE, echo=FALSE, warning=FALSE, message=FALSE)
 library(here)
 library(tidyverse)
+library(cowplot)
 ```
 
-## Introduction
+---
 
-The epidemiology of the 2019-nCov is poorly understood.
-Here we develop a model for the trajectory of 2019-nCov during the early-to-middle stages of transmission in Georgia, USA.
-This model is being used for inference, forecasting, or scenario analysis.
+### Reproducible Materials
+All code and data needed to reproduce our results can be found in our public GitHub repository: https://github.com/CEIDatUGA/COVID-GA-model.
+
+---
+
+# Introduction
+
+The epidemiology of SARS-CoV-2 is poorly understood.
+Here we develop a model for the transmission of SARS-CoV-2 from March 2020 through May 2020 in Georgia, USA.
+This model is being used for inference, forecasting, and scenario analysis.
 
 Key features of this model include:
 
 1. Stochastic transmission process. Stochastic models are models with a realistic level of random variation. Stochastic models are essential for proper modeling of systems that start with a small number of infections.
 2. Realistic interval distributions for presymptomatic and symptomatic periods.
-3. Transmission is allowed at different rates for asymptomatic, presymptomatic, and symptomatic individuals.[^1]
+3. Transmission is allowed at different rates for asymptomatic, presymptomatic, and symptomatic individuals.
 4. Time varying rates of case detection, isolation, and case notification.
 5. Realistic intervention scenarios.
-6. Affect of human mobility on transmission (i.e., social distancing)
-7. A latent process that allows transmission to vary over time due to environmental factors and other behavioral measures that can reduce transmission but are difficult to include with data (e.g., wearing face masks)
+6. Affect of human mobility on transmission (i.e., social distancing).
+7. A latent process that allows transmission to vary over time due to environmental factors and other behavioral measures that can reduce transmission but are difficult to include with data (e.g., wearing face masks).
 
 This model contains both fixed and fitted parameter values.
 Fixed parameters were defined using clinical outcome reports.
-Non-fixed parameters values were found by fitting the model to incident case and death reports, as described in more detail below.
-The pandemic of 2019-nCov is still evolving and information that was used in the construction of this model may be incomplete or contain errors.
+Fitted parameters values were found by calibration to incident case and death reports, as described in more detail below.
+The pandemic of SARS-CoV-2 is still evolving and information that was used in the construction of this model may be incomplete or contain errors.
 Accordingly, these results are preliminary, provisional, and subject to change.
 These results have not been peer-reviewed, but have been prepared to a professional standard with the intention of providing useful interpretation of a rapidly developing event. 
+
+# Methods
 
 ## Data
 
 We fit the model to incident case and death reports for Georgia, as collated by <a href="covidtracking.com" target="_blank">The COVID Tracking Project</a>.
 
 
-```{r read-data}
+```{r read-data, fig.height = 3}
 filenames <- list.files(path = here("output/"), pattern = "Georgia_COV")
 filename <- tail(sort(filenames[grep("*mif.rds", filenames)]), 1)
 fullpath <- paste0("output/", filename)
@@ -56,18 +70,18 @@ data <- readRDS(here(fullpath))$pomp_data %>%
   gather("key", "value", -Date)
 
 ggplot(data, aes(x = Date, y = value)) +
-  geom_line(size = 1) +
+  geom_col(width = 0.3) +
   ylab("Number of persons") +
   facet_wrap(~key, scales = "free", nrow = 2) +
   theme_minimal(base_size = 14, base_line_size = 0.5)
 ```
 
 In addition, we include a covariate that describes human mobility.
-These data come from <a href="https://www.unacast.com/" target="_blank">unacast</a>.
-We smooth the raw data from unacast using a spline fit, resulting in the trajectory of human movement shown below.
+These data come from <a href="https://www.unacast.com/" target="_blank">Unacast</a>.
+We smooth the raw data from Unacast using a spline fit, resulting in the trajectory of human movement shown below.
 This covariate is used to reduce baseline transmission.
 
-```{r covariate, fig.height=3}
+```{r covariate, fig.height=2, fig.width=4}
 filenames <- list.files(path = here("output/"), pattern = "Georgia_COV")
 filename <- tail(sort(filenames[grep("*mif.rds", filenames)]), 1)
 fullpath <- paste0("output/", filename)
@@ -80,7 +94,7 @@ ggplot(covar, aes(x = Date, y = rel_beta_change)) +
   geom_line(size = 1) +
   ylab("Human movement\n(% of normal)") +
   scale_y_continuous(limits = c(0,1)) +
-  theme_minimal(base_size = 14, base_line_size = 0.5)
+  theme_minimal(base_line_size = 0.5)
 ```
 
 
@@ -90,19 +104,19 @@ ggplot(covar, aes(x = Date, y = rel_beta_change)) +
 The model comprises susceptible, pre-symptomatic, asymptomatic, symptomatic, diagnosed, hospitalized, deceased, and recovered persons. 
 The following compartments are included:  
 
-* $\boldsymbol{S}$ - Uninfected and *susceptible* individuals. Susceptible individuals can become infected by individuals in the $E$, $I_a$, $I_{su}$, $I_{sd}$, $C$, and $H$ stages. Rates of transmission from these stages can be adjusted individually.
-* $\boldsymbol{E}$ - Individuals who have been *exposed*, and so are infected, but do not yet show symptoms. Those individuals can be infectious. At the end of the $E$ stage, a fraction moves into the $I_a$ stage, another fraction moves into the $I_{su}$ stage, and the remainder into the $I_{sd}$ stage.
-* $\boldsymbol{I_a}$ - Individuals who are infected and *asymptomatic*. Those individuals are likely infectious, but the model allows to adjust this.
-* $\boldsymbol{I_{su}}$ - Individuals who are infected and *symptomatic*, but are *undetected*. Those individuals are likely infectious. Individuals in this compartment never get diagnosed, and are assumed to recover.
-* $\boldsymbol{I_{sd}}$ - Individuals who are infected and *symptomatic*, and are *detected*. Those individuals are likely infectious. Individuals in this compartment will get diagnosed and move to $C$.
+* $\boldsymbol{S}$ - Uninfected and *susceptible* individuals. Susceptible individuals can become infected by individuals in the $L$, $I_a$, $I_{su}$, $I_{sd}$, $C$, and $H$ stages. Rates of transmission from these stages can be adjusted individually.
+* $\boldsymbol{L}$ - Individuals with *latent* infections who do not yet show symptoms. Those individuals can be infectious. At the end of the $L$ stage, a fraction moves into the $I_a$ stage, another fraction moves into the $I_{su}$ stage, and the remainder into the $I_{sd}$ stage.
+* $\boldsymbol{I_a}$ - Individuals who are *infected* and *asymptomatic*. Those individuals are likely infectious, but the model allows to adjust this.
+* $\boldsymbol{I_{su}}$ - Individuals who are *infected* and *symptomatic*, but are *undetected*. Those individuals are likely infectious. Individuals in this compartment never get diagnosed, and are assumed to recover.
+* $\boldsymbol{I_{sd}}$ - Individuals who are *infected* and *symptomatic*, and are *detected*. Those individuals are likely infectious. Individuals in this compartment will be diagnosed and move to $C$.
 * $\boldsymbol{C}$ - Individuals who have been diagnosed as *cases*. Those individuals are likely isolated and not infectious, but the model allows to adjust this. A fraction of individuals in the $C$ stage will naturally recover, without the need for hospitalization. The remainder moves into the $H$ stage.
 * $\boldsymbol{H}$ - Individuals who have been *hospitalized*. Those individuals are likely isolated and not infectious, but the model allows to adjust this. A fraction of individuals in the $H$ stage will recover, the remainder will die.
 * $\boldsymbol{R}$ - *Recovered/removed* individuals. Those individuals have recovered and are immune. 
 * $\boldsymbol{D}$ - Individuals who *died* from the infection. 
 
-To allow more realistic distributions of movement through compartments, several of these compartments are internally split into multiple stages using the *linear chain trick*.[^2]
+To allow more realistic distributions of movement through compartments, several of these compartments are internally split into multiple stages using the *linear chain trick*.^[Hurtado and Kirosingh 2019 (https://link.springer.com/article/10.1007/s00285-019-01412-w)]
 
-* $\boldsymbol{E}$ - 4 compartments
+* $\boldsymbol{L}$ - 4 compartments
 * $\boldsymbol{I_a}$ - 4 compartments 
 * $\boldsymbol{I_{su}}$ - 4 compartments
 * $\boldsymbol{I_{sd}}$ - 4 compartments
@@ -115,36 +129,437 @@ The flow diagram for this model shown below.
 knitr::include_graphics(here("docs",'pomp-model.png'))
 ```
 
-Note that the force of infection ($f$) at time $t$ is: $f(t) = \psi(t)\phi(t)\frac{\beta}{N} \left(I(t) \right)$, where, for simplicity, $I$ stands for all infectious individuals at time $t$.
+We implemented the above model using the R package **pomp** version 2.7.1.0^[King et al. 2016 (https://www.jstatsoft.org/article/view/v069i12) and King et al. 2020 (https://kingaa.github.io/pomp/)].
+All transitions among the compartments in our model were modeled using the Euler multinomial approximation (`reulermultinom` in **pomp** syntax) given the size of the "donating" compartment and the specified or fitted rate of transition.
+
+Note that tranmission rate at time $t$ is $\omega(t) = \frac{\beta}{N} \psi(t) \phi(t) \Gamma(t)$, resulting the force of infection $f(t) = \omega(t) \left(I(t) \right)$, where, for simplicity, $I$ stands for all infectious individuals at time $t$.
 $\phi(t)$ is the human mobiltiy metric shown in the figure above.
 $\psi(t)$ is the result of a latent trend process that is modeled using a fitted spline:
 
 $$
-\text{logit}\left(\psi(t)\right) = \sum_{i=1}^K q_i \xi_{i_t},
+\text{logit}\left(\psi(t)\right) = \sum_{i=1}^K g_i \xi_{i_t},
 $$
 
-where $K$ is the number of knots, $\mathbf{q}$ is a vector of spline coefficients (to be fitted), and $\mathbf{\xi}$ is a matrix basis functions.
-We define the number of knots ($K$) as the number of days in the data set divided by 10 (so, one knot every 10 days).
+where $K$ is the number of basis functions, $\mathbf{g}$ is a vector of spline coefficients (to be fitted), and $\mathbf{\xi}$ is a matrix basis functions.
+We define the number of basis functions ($K$) as the number of days in the data set divided by 10 (so, one function for every 10 days).
 Note the logit transformation to go from the linear scale to the 0 - 1 scale.
+We used cubic basis functions from the **pomp** function `pomp::bspline_basis()`.
+
+We also included  process noise ($\Gamma(t)$) on the rate of tranmission ($\omega(t)$) at each time step.
+$\Gamma(t)$ is modeled as gamma-distributed white noise (temporally uncorrelated noise) with mean 1 and variance $\sigma^2$^[Bretó and Ionides 2011 (https://www.sciencedirect.com/science/article/pii/S0304414911001761)], which we fit.
+
+Interventions enter our model in three ways.
+The first is through the augmentation of $\beta$ by the mobility covariate ($\phi$) and the latent process ($\psi$).
+The second is through an increase in the fraction of exposed individuals that are detected and flow into the $I_{sd}$ compartments.
+This fraction ($q$) starts at a low level of 0.1 and then, starting on March 30, slowly ramps up to 0.4.
+Third, the time to diagnosis ($s$) decreases over time, ramping up starting on March 30.
+The interventions on $q$ and $s$ are applied with a sigmoid function, rather than a linear change over time.
+
+We assume that new, daily case reports arise from a negative binomial distribution whose central tendency is captured by the flow of individuals from $I_{sd4}$ to $C_1$ (see flow diagram above).
+Let this quantity be $C_{\text{new}}$, which accumulates over the course of one day in the simulation model and resets to zero at the end of each day (the model is simulated at a time step of 1/20 days).
+Similarly, we assume that new, daily death resports arise from a negative binomial distribution whose central tendency is captured by the flow of individuals from $C_4$ to $D$.
+Let this quantity be $D_{\text{new}}$, which accumulates over the course of one day in the simulation model and resets to zero at the end of each day.
+Then, for both new cases and deaths, we model the observation process as:
+
+$$
+\text{cases}(t) \sim \text{NB}\left(C_{\text{new}}(t), \theta_C \right), \text{and} \\
+\text{deaths}(t) \sim \text{NB}\left(D_{\text{new}}(t), \theta_D \right),
+$$
+
+where $\theta_C$ and $\theta_D$ are the negative binomial dispersion parameters for cases and deaths, respectively.
+Note that $\text{cases}(t)$ and $\text{deaths}(t)$ are the observed number of cases or deaths reported on day *t*, as shown in the data figure at the top of this document.
 
 ## Model Fitting
 We fit the model using Maximization by Iterated particle Filtering (MIF).
-Observations (daily case and death reports) were modeled as arising from a negative binomial reporting process.
+Observations (daily case and death reports) were modeled as arising from a negative binomial reporting process (see above).
 We estimated five parameters: baseline transmission rate ($\beta$), the fraction of hospitalized cases that result in death ($m$), a parameter accounting for extra-demographic process noise ($\sigma$), and two negative binomial dispersion parameters ($\theta_c$ and $\theta_d$).
-In addition, we estimated the basis function parameters ($q_i$), whose number depend on the length of the time series at the time of fitting.
+In addition, we estimated the basis function parameters ($g_i$), whose number depend on the length of the time series at the time of fitting.
 
 All other parameters were fixed at the following values:
 
-MIF relies on particle filtering, which estimates the likelihood of fixed parameters by integrating state variables of a stochastic system.
-To narrow in on the maximum likelihood estimates, MIF lets parameters take a random walk during the filtering process and selectively propagates forward parameter sets (i.e., particles) with the highest likelihood.
-The variance of the random walk decreases at each iteration of MIF, where a MIF iteration means one filtering pass through the time series.
-This procedure converges toward the maximimum likelihood estimates (MLEs), in theory.
+```{r params}
+rnms <- row.names(res$partable_natural)
+nbetas <- length(grep("b", rnms)) - 2
+des_string <- c("MIF id", "Log Likelihood", "SE of Log Likelihood", 
+                "Transmission rate", 
+                "Relative transmissibility of latent infections",
+                "Relative transmissibility of asymptomatic individuals",
+                "Relative transmissibility of detected symptomatic individuals post-reporting",
+                "Relative transmissibility of hospitalized individuals",
+                "Time spent in latent compartments (days)",
+                "Time spent in asymptomatic compartments (days)",
+                "Time spent in symptomatic, undetected compartments (days)",
+                "Time spent in symptomatic, detected compartments (days)",
+                "Time spent in diagnosed cases compartments (days)",
+                "Time spent in hospitalized compartments (days)",
+                "Maximum for factor by which movement through Isd happens faster (quicker diagnosis)",
+                "Rate at which faster diagnosis ramps up to max",
+                "Time at which diagnosis is at 50% of max (in days since March 1)",
+                "Maximum fraction of cases that are detected",
+                "Speed at which fraction detected ramps up",
+                "Time at which infection detection fraction is at 50% of max (days since March 1)",
+                "Minimum fraction detected at March 1",
+                "Fraction of latent infections that move to aysmptomatic",
+                "Fraction of detected cases that are hospitalized",
+                "Fraction of hospitalizations that result in death",
+                "Dispersion parameter for case reporting observation process",
+                "Dispersion parameter for hospitalization reporting observation process",
+                "Dispersion parameter for death reporting obsercation process",
+                "Variance of the stochastics process noise",
+                rep("Spline coefficient", nbetas),
+                "Initial number of susceptible individuals on March 1",
+                "Initial number of latent infectious individuals on March 1",
+                "Initial number of asymptomatic individuals on March 1",
+                "Initial number of symptomatic, undetected individuals on March 1",
+                "Initial number of symptomatic, detected individuals on March 1",
+                "Initial number of diagnosed cases on March 1",
+                "Initial number of hospitalized cases on March 1",
+                "Initial number of recovered individuals on March 1",
+                "Initial number of deaths after hospitalization on March 1",
+                "Trend")
 
-We used the IF2 algorithm [@Ionides2015] implemented in the R [@R2017] package **pomp** version 1.18 [@King2016; @King2018] to conduct the MIF procedure.
+params_map <- tibble(Parameter = rnms,
+                     Description = des_string)
+
+res$partable_natural %>%
+  mutate(Parameter = rnms) %>%
+  filter(is_fitted == "no") %>%
+  dplyr::select(-is_fitted) %>%
+  gather("key", "value", -Parameter) %>%
+  filter(key == "X1") %>%
+  left_join(params_map, by = "Parameter") %>%
+  filter(!Parameter %in% c("MIF_ID", "LogLik", "LogLik_SE", "trend_start", "theta_hosps")) %>%
+  dplyr::select(Parameter, Description, value) %>%
+  mutate(Parameter = ifelse(Parameter == "E1_0", "L1_0", Parameter)) %>%
+  knitr::kable(digits = 2, format = "html") %>%
+  kableExtra::kable_styling(full_width = F)
+```
+
+MIF relies on particle filtering, which estimates the likelihood of fixed parameters by integrating state variables of a stochastic system.
+To identify the maximum likelihood estimates, MIF lets parameters take a random walk during the filtering process and selectively propagates forward parameter sets (i.e., particles) with the highest likelihood.
+The variance of the random walk decreases at each iteration of MIF, where a MIF iteration means one filtering pass through the time series.
+In theory, this procedure converges toward the maximimum likelihood estimates (MLEs).
+
+We used the IF2 algorithm^[Ionides et al. 2015 (https://www.pnas.org/content/112/3/719)] implemented in the R^[R Core Team 2019 (https://www.r-project.org/)] package **pomp** version 2.7.1.0^[King et al. 2016 (https://www.jstatsoft.org/article/view/v069i12) and King et al. 2020 (https://kingaa.github.io/pomp/)] to conduct the MIF procedure.
 To initialize MIF, we generated 30 parameter sets with values normally distributed around our prior expectations based on a literature review and line list data.
-We then performed two round of MIF, each for 150 iterations, with 2,000 particles, and geometric cooling.
+We then performed two rounds of MIF, each for 150 iterations with 2,000 particles and geometric cooling.
 For the first round of MIF we set `cooling.factor = 0.9`.
 For the second round of MIF, which simply continues from where the first round stopped, we set `cooling.factor = 0.7`.
 We then computed the log likelihood of the 30 final MIF parameter sets (i.e., parameter sets collected after 300 MIF iterations) as the log of the mean likelihoods of 10 replicate particle filters with 5,000 particles each.
 At this stage, we assume the parameter set with highest log likelihood is the MLE.
 We use all parameter sets with log likelihoods within 2 of the maximum when forecasting.
+
+## Model Assessment
+We assess our model in two ways.
+First, we calculate the mean absolute error (MAE) of the model by comparing in-sample simulation trajectories to the observed data.
+To do so, we simulate 100 trajectories from the model from all parameter sets within 2 points of the maximum log likelihood.
+We then calculate the MAE for each data point across the replicate simulations and then take the average MAE over the time series.
+We do this independently for case and death data.
+We smoothed the observations using a 7-day moving average before calculating MAE.
+
+Second, we evaluate the forecast performance of our model by comparing projections to new data.
+We make benchmark forecasts every Monday that are compared to new data as they emerge.
+This allows us to evaluate forecasts over a range of prediction horizons.
+
+## Projection Scenarios
+We use the fitted model to make projections under three scenarios.
+Under all scenarios, we assume that the latent trend is equal to its average value over the last thirty days.
+This means we are assuming that preventative measures unrelated to human mobility remain constant at the levels observed over the last 30 days.
+
+1. **Status quo**: We assume that social distancing remains at the level of the last observation at $t = T$, meaning that all future $\phi$ equal $\phi(T)$.
+2. **Increased social distancing**: We assume that social distancing increases such that $\phi \rightarrow 0.3$ linearly over the course of seven days and then remains at 0.3.
+3. **Return to normal**: We assume that social distancing decreases such that $\phi \rightarrow 1$ linearly over the course of seven days and then remains at 1.
+
+Each scenario is simulated 100 times for each parameter set that is within 2 points of the maximum log likelihood parameter set.
+Initial conditions are determined by simulating 100 trajectories over the observation period and then extracting unobservable state values from the trajectory that most closely aligns with the final observations of case and death reports.
+Thus, each replicate within an MLE set starts from the same initial conditions, but different MLE sets start from unique initial conditions.
+We make projections six weeks into the future.
+
+# Results
+
+## Parameter Estimates
+```{r mles}
+pars <- res$partable_natural
+beta_id <- which(rownames(pars) == "beta_s")
+s_id <- which(rownames(pars) == "S_0")
+m_id <- which(rownames(pars) == "frac_dead")
+mle_pars <- pars[,2]
+beta_est <- mle_pars[beta_id] * mle_pars[s_id]
+m_est <- mle_pars[m_id]
+llmle <- pars[which(rownames(pars) == "LogLik"), 2]
+
+loglik_naive <- function(y){
+  res <- diff(y)
+  sigma <- sd(res, na.rm = TRUE)
+  densities <- dnorm(res, sd = sigma, log = TRUE)
+  sum(densities)
+}
+cnll <- loglik_naive(pomp_data$cases[!is.na(pomp_data$cases)])
+dnll <- loglik_naive(pomp_data$deaths[!is.na(pomp_data$deaths)])
+nll <- cnll + dnll
+```
+
+The log likelihood of the highest MLE parameter set is `r round(llmle, 2)`.
+For comparsion, the log likelihood of a simple random walk model is `r round(nll, 2)`.
+We defined the random walk as $x(t+1) = x(t) + \sigma$, where $x$ is the variable of interest (reported cases or deaths) and $\sigma$ is the standard deviation of the of the time series up to time $t$.
+We calculated the log likelihood of the random walk model using the following R code:
+
+```{r nll, eval = FALSE, echo = TRUE}
+loglik_naive <- function(y){
+  res <- diff(y)
+  sigma <- sd(res, na.rm = TRUE)
+  densities <- dnorm(res, sd = sigma, log = TRUE)
+  sum(densities)
+}
+```
+
+We calculated the log likelihood of the random walk model for cases and deaths independently and then sum them to arrive a a joint log likelihood analogous to the one evaluated by the **pomp** particle filter for the SEIR model.
+
+Our current estimate of baseline transmission rate is `r round(beta_est, 2)`.
+Our current estimate of the fraction of hospitalized cases that result in death is `r round(m_est, 2)`.
+Transmission rate is not constant in our model, however.
+Below we plot the estimated latent trend ($\psi$), the mobility covariate ($\phi$), and the resulting trend in transmission over time ($\beta(t) = \phi(t) \psi(t) \beta$).
+
+```{r betatime, fig.width=8.5, fig.height=3}
+dates <- unique(pomp_data$Date)
+num_days <- length(dates)
+n_knots <- round(num_days / 10)
+bases <- pomp::bspline.basis(x=1:num_days, nbasis=n_knots, degree=3)
+
+res$partable %>%
+  slice(1) %>%
+  mutate(id = 1:n()) %>%
+  gather("key", "value", -id) %>%
+  filter(key %in% paste0("b", 1:n_knots)) %>%
+  dplyr::select(-id) %>%
+  deframe() -> betas
+
+
+trend <- bases %*% betas
+trend <- exp(trend) / (1+exp(trend))
+trend_df <- tibble(
+  Date = dates,
+  Psi = trend,
+  Phi = covar$rel_beta_change) %>%
+  mutate(PhiPsi = Phi*Psi) %>%
+  gather("key", "value", -Date)
+
+ggplot(trend_df, aes(Date, value, color = key)) +
+  geom_line(aes(size = key)) +
+  scale_y_continuous(limits = c(0, 1)) +
+  scale_color_manual(values = c("dodgerblue", "black", "salmon")) +
+  scale_size_manual(values = c(1,2,1)) +
+  theme_minimal(base_size = 14, base_line_size = 0.5) +
+  theme(legend.position = "top") -> phipsi
+
+beta_trend <- trend_df %>%
+  filter(key == "PhiPsi") %>%
+  mutate(beta = value * beta_est)
+
+ggplot(beta_trend, aes(x = Date, y = beta)) +
+  geom_line() +
+  ylab(expression(beta[t]))+
+  theme_minimal(base_size = 14, base_line_size = 0.5) -> btrend
+
+cowplot::plot_grid(phipsi, btrend, ncol = 2, align = "v")
+
+```
+
+## Model Fits
+
+Here we show the fit our model to the data.
+We plot the trajectory used for determining initial conditions for projections from each MLE parameter set within 2 log likelihood points of the maximum.
+In the plots, dashed lines are the data, solid blue lines are the mean trajectories across MLE sets, and the lighter blue lines are the trajectories from individual MLE sets.
+
+```{r fits, fig.height=3}
+most_recent_files <- tail(list.files(path = here("output"), "Georgia_COV"), 3)
+filename_sims <- most_recent_files[grep(pattern = "simulation-scenarios", most_recent_files)]
+simfile <- here('output', filename_sims)
+out_sims <- readRDS(simfile)
+
+pomp_data <- res$pomp_data %>%
+  dplyr::select(-time, -hosps) %>%
+  rename("Cases" = cases,
+         "Deaths" = deaths) %>%
+  gather(key = "Variable", value = "Value", -Date) %>%
+  mutate(SimType = "obs", Period = "Past")
+
+sim_summs <- out_sims %>%
+  dplyr::select(SimType, Period, Date, cases, deaths) %>%
+  rename("Acases" = cases,
+         "Cdeaths" = deaths) %>%
+  gather(key = "Variable", value = "Value", -SimType, -Period, -Date) %>%
+  group_by(SimType, Period, Date, Variable) %>%
+  summarise(lower = ceiling(quantile(Value, 0.025)),
+            ptvalue = ceiling(mean(Value)),
+            upper = ceiling(quantile(Value, 0.975))) %>%
+  ungroup()
+
+end_date <- as.Date(max(pomp_data$Date))
+dates <- seq.Date(as.Date("2020-03-01"), end_date, "days")
+dates_df <- data.frame(time = c(1:length(dates)), Date = dates)
+
+fits <- sim_summs %>%
+  filter(SimType == "status_quo") %>%
+  filter(Period == "Past")
+
+# Diagnostic plot
+fitreps <- out_sims %>%
+  filter(SimType == "status_quo") %>%
+  filter(Period == "Past") %>%
+  dplyr::select(mle_id, SimType, Date, cases, deaths) %>%
+  rename("Cases" = cases,
+         "Deaths" = deaths) %>%
+  gather(key = "Variable", value = "Value",-mle_id, -SimType, -Date) %>%
+  group_by(Date, Variable, mle_id) %>%
+  summarise(Value = ceiling(mean(Value))) %>%
+  ungroup()
+
+meanline <- fitreps %>%
+  group_by(Date, Variable) %>%
+  summarise(Value = ceiling(mean(Value))) %>%
+  ungroup()
+
+medline <- fitreps %>%
+  group_by(Date, Variable) %>%
+  summarise(Value = ceiling(median(Value))) %>%
+  ungroup()
+
+ggplot() +
+  geom_line(data = fitreps, aes(x = Date, y = Value, group = mle_id), 
+            color = "dodgerblue", alpha = 0.2) +
+  geom_line(data = meanline, aes(x = Date, y = Value), size = 1, color = "dodgerblue") +
+  # geom_line(data = medline, aes(x = Date, y = Value), color = "red") +
+  geom_line(data = pomp_data, aes(x = Date, y = Value),linetype = 2) +
+  facet_wrap(~Variable, scales = "free_y", ncol = 1) +
+  ylab("Number of new reports") +
+  theme_minimal(base_size = 14, base_line_size = 0.5)
+```
+
+<!-- Within-sample mean absolute error of our model has remained relatively constant over the past few weeks (see plot below). -->
+
+```{r errors, fig.height=2.5}
+dat <- res$pomp_data %>%
+  dplyr::select(time, cases, deaths) 
+
+# Apply 7-day moving average to the data
+ma <- function(x) {
+  window <- 7
+  n <- c(seq.int(window), rep(window, length(x)-window))
+  xm <- ceiling(data.table::frollmean(x, n, adaptive=TRUE, na.rm = T))
+  xm[is.nan(xm)] <- NA 
+  return(xm)
+}
+
+dat <- dat %>%
+  mutate(cases = ma(cases),
+         deaths = ma(deaths)) %>%
+  gather("key", "value", -time) %>%
+  rename("observation" = value)
+  
+out_sims %>%
+  filter(SimType == "status_quo") %>%
+  dplyr::select(rep_id, time, cases, deaths) %>%
+  gather("key", "value", -rep_id, -time) %>%
+  left_join(dat, by = c("time", "key")) %>%
+  drop_na() %>%
+  mutate(abserror = abs(value - observation)) %>%
+  group_by(time, key) %>%
+  summarise(mae = mean(abserror)) %>%
+  ungroup() %>%
+  left_join(res$pomp_data[,c("time", "Date")], by = "time") -> maeByDate
+
+# ggplot(data = maeByDate, aes(x = Date, y = mae)) +
+#   geom_line() +
+#   facet_wrap(~key, scales = "free_y") +
+#   ggtitle("Mean absolute error over time") +
+#   ylab("MAE") +
+#   theme_minimal(base_size = 14, base_line_size = 0.5)
+
+maeTotal <- maeByDate %>%
+  group_by(key) %>%
+  summarise(mmae = round(mean(mae),2))
+```
+
+Overall, the MAE of our model for cases is `r maeTotal %>% filter(key == "cases") %>% pull(mmae)`.
+The MAE of our model for deaths is `r maeTotal %>% filter(key == "deaths") %>% pull(mmae)`.
+
+Our initial forecasts with this model anticipated an upward trajectory in cases and deaths that did not materialize (see plots below).
+The most recent forecast shows much improvement.
+
+```{r forecasts}
+forecast_files <- list.files("../output/forecasts/", pattern = ".csv")
+tmp <- read.csv(paste0("../output/forecasts/", forecast_files[1])) %>%
+  filter(type == "quantile") %>%
+  filter(grepl("day ahead inc death", target)) %>%
+  mutate(target_end_date = as.Date(target_end_date))
+foredate <- min(as.Date(tmp$forecast_date))
+ggplot() +
+  geom_line(data = tmp, aes(x = target_end_date, y = value, color = quantile, group = quantile)) +
+  geom_line(data = res$pomp_data, aes(x = Date, y = deaths), size = 1, color = "white") +
+  scale_color_viridis_c() +
+  theme_dark() +
+  scale_y_continuous(limits = c(0,250)) +
+  ylab("Number of\nreported deaths") +
+  xlab("Date") +
+  ggtitle(paste0("Forecast date: ", foredate)) -> g1
+
+tmp <- read.csv(paste0("../output/forecasts/", forecast_files[2])) %>%
+  filter(type == "quantile") %>%
+  filter(grepl("day ahead inc death", target)) %>%
+  mutate(target_end_date = as.Date(target_end_date))
+foredate <- min(as.Date(tmp$forecast_date))
+ggplot() +
+  geom_line(data = tmp, aes(x = target_end_date, y = value, color = quantile, group = quantile)) +
+  geom_line(data = res$pomp_data, aes(x = Date, y = deaths), size = 1, color = "white") +
+  scale_color_viridis_c() +
+  theme_dark() +
+  scale_y_continuous(limits = c(0,250)) +
+  ylab("Number of\nreported deaths") +
+  xlab("Date") +
+  ggtitle(paste0("Forecast date: ", foredate)) -> g2
+
+tmp <- read.csv(paste0("../output/forecasts/", forecast_files[3])) %>%
+  filter(type == "quantile") %>%
+  filter(grepl("day ahead inc death", target)) %>%
+  mutate(target_end_date = as.Date(target_end_date))
+foredate <- min(as.Date(tmp$forecast_date))
+ggplot() +
+  geom_line(data = tmp, aes(x = target_end_date, y = value, color = quantile, group = quantile)) +
+  geom_line(data = res$pomp_data, aes(x = Date, y = deaths), size = 1, color = "white") +
+  scale_color_viridis_c() +
+  theme_dark() +
+  scale_y_continuous(limits = c(0,250)) +
+  ylab("Number of\nreported deaths") +
+  xlab("Date") +
+  ggtitle(paste0("Forecast date: ", foredate)) -> g3
+
+cowplot::plot_grid(g1, g2, g3, nrow = 3)
+```
+
+## Model Projections
+
+### Cumulative infections over time
+
+The following plot shows the estimated total number of infections for the three scenarios. Shaded regions represent the area within which 95% of the model simulations fall.
+
+```{r infections}
+knitr::include_graphics(here("output/figures/covidtracker-figures",'infections-trajs-nat.png'))
+```
+
+### Daily cases and deaths over time (data, model fit, projections)
+
+The following plots show the observed and projected daily number of recorded cases and deaths for the three scenarios. Dashed line represents the observed data. The green line is our model's fit to the observed data, and the purple line is the mean projection. Shaded regions represent the area within which 95% of the model simulations fall.
+
+```{r cases}
+knitr::include_graphics(here("output/figures/covidtracker-figures",'cases-trajs-nat.png'))
+```
+
+
+```{r deaths}
+knitr::include_graphics(here("output/figures/covidtracker-figures",'deaths-trajs-nat.png'))
+```
+
+# Next steps
+This model is currently being used primarily to make projections of the future transmission of COVID-19. It is hoped that it may help inform public health officials and individuals to make decisions about "re-opening." 
+In the near future, we hope to use the model to make more formal inference about key aspects of COVID-19 transmission such as the transmission rate over time and the fraction of asymptomatic cases.

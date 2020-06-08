@@ -132,12 +132,7 @@ Key dates for the control COVID-19 in Georgia include:
 * March 23, 2020: Executive order limiting large gatherings statewide and ordering "shelter in place"
 * April 20, 2020: Executive order moving certain businesses to minimum operations
 
-In what follows we consider six scenarios.
-The first four scenarios are projections of possible futures based on what has already happened in the past.
-The final two scenarios are simulations of the epidemic starting from March 1, 2020 showing the effectiveness of different interventions and behaviors.
-These two counterfactual scenarios explore what might have occurred if different actions had been taken in the past.
-
-*Possible futures scenarios*
+In what follows we consider three social distancing scenarios based on what has already happened to date:
 
 1. **Increase social distancing.** Increasing social distancing reduces human movements from the current level to 30% of normal, which is the reduction observed in New York City that enabled transmission to decline there.
 2. **Maintain social distancing (status quo).** Maintaining social distancing at the level last observed.
@@ -271,7 +266,7 @@ This model comprises susceptible, pre-symptomatic, asymptomatic, symptomatic, di
 The following compartments are included:  
 
 * $\boldsymbol{S}$ - Uninfected and *susceptible* individuals. Susceptible individuals can become infected by individuals in the $E$, $I_a$, $I_{su}$, $I_{sd}$, $C$, and $H$ stages. Rates of transmission from these stages can be adjusted individually.
-* $\boldsymbol{E}$ - Individuals who have been *exposed*, and so are infected, but do not yet show symptoms. Those individuals can be infectious. At the end of the $E$ stage, a fraction moves into the $I_a$ stage, another fraction moves into the $I_{su}$ stage, and the remainder into the $I_{sd}$ stage.
+* $\boldsymbol{L}$ - Individuals with *latent* infections who do not yet show symptoms. Those individuals can be infectious. At the end of the $L$ stage, a fraction moves into the $I_a$ stage, another fraction moves into the $I_{su}$ stage, and the remainder into the $I_{sd}$ stage.
 * $\boldsymbol{I_a}$ - Individuals who are infected and *asymptomatic*. Those individuals are likely infectious, but the model allows to adjust this.
 * $\boldsymbol{I_{su}}$ - Individuals who are infected and *symptomatic*, but are *undetected*. Those individuals are likely infectious. Individuals in this compartment never get diagnosed, and are assumed to recover.
 * $\boldsymbol{I_{sd}}$ - Individuals who are infected and *symptomatic*, and are *detected*. Those individuals are likely infectious. Individuals in this compartment will get diagnosed and move to $C$.
@@ -282,7 +277,7 @@ The following compartments are included:
 
 To allow more realistic distributions of movement through compartments, several of these compartments are internally split into multiple stages using the *linear chain trick*.[^2]
 
-* $\boldsymbol{E}$ - 4 compartments
+* $\boldsymbol{L}$ - 4 compartments
 * $\boldsymbol{I_a}$ - 4 compartments 
 * $\boldsymbol{I_{su}}$ - 4 compartments
 * $\boldsymbol{I_{sd}}$ - 4 compartments
@@ -313,7 +308,9 @@ Transmissibility of the virus is assumed to be proportional to the level of huma
 Key parameters estimated using maximum likelihood by iterated filtering (MIF)[^3] include baseline transmissibility ($\beta_0$), maximum ascertainment (i.e. maximum fraction of cases detected), fraction of known cases that are hospitalized, fatality rate among hospitalized cases, and observation errors. 
 Auxiliary parameters estimated using MIF include the intensity of the parameter random walk and dispersion parameters for observables.
 
-For more details, see the <a href='https://github.com/CEIDatUGA/COVID-GA-model' target='_blank'>public GitHub repository</a>
+For full model details, see J.M. Drake, A. Handel, E.B. O’Dea, A.T. Tredennick. <a href="stochastic-fitting-georgia-suplement.html" target="_blank">A stochastic model for the transmission of SARS-CoV-2 in Georgia, USA</a>
+
+All model code is available in the <a href='https://github.com/CEIDatUGA/COVID-GA-model' target='_blank'>public GitHub repository</a>
 
 <small>**Disclaimer:** The COVID-19 epidemic is changing rapidly, and information that was used in the construction of this model may be incomplete or contain errors.
 Accordingly, these results are preliminary, provisional, and subject to change.

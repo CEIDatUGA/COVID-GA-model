@@ -131,7 +131,7 @@ simulate_trajectories <- function(
       filter(mle_id == init_id$mle_id) %>%
       filter(.id == init_id$.id) %>%
       tail(1) %>%
-      dplyr::select(-time, -.id, -cases, -hosps, -deaths, -rel_beta_change) %>%
+      dplyr::select(-time, -.id, -cases, -deaths, -rel_beta_change) %>%
       summarise(S_0=round(mean(S)),
                 E1_0=log(round(mean(E1))), 
                 Ia1_0=log(round(mean(Ia1))), 
