@@ -123,7 +123,10 @@ covar_file <- tail(
   1)
 covar_table <- readRDS(here(paste0("data/", covar_file)))
 covar_table <- covar_table %>%
-  dplyr::select(-time) %>%
+  dplyr::select(-time, -state) %>%
+  group_by(Date) %>%
+  summarise(rel_beta_change = mean(rel_beta_change)) %>%
+  ungroup() %>%
   right_join(pomp_data %>%
               dplyr::select(Date, cases), by = "Date") %>%
   tidyr::fill(rel_beta_change) %>%  # fills in trailing NAs w/ last data point
