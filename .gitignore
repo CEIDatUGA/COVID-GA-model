@@ -5,3 +5,7 @@
 unacast-ga-private.txt
 ga_state_raw*.csv
 
+output/figures/covidtracker-figures/landing-page-fig_files/
+output/figures/covidtracker-figures/fits-to-data_files/
+output/figures/covidtracker-figures/fits-to-data_files/
+output/figures/gadph-figures/
