@@ -124,7 +124,7 @@ plot_summaryfig()
 
 Here we explore a range of scenarios for transmission in Georgia.
 All simulations start on 1 March.
-The model is fit to data on reported cases, hospitalizations, and deaths to `r format(Sys.time(), '%B %d, %Y')` and propagated six weeks into the future.
+The model is fit to data on reported cases and deaths to `r format(Sys.time(), '%B %d, %Y')` and propagated six weeks into the future.
 
 Key dates for the control COVID-19 in Georgia include:
 
