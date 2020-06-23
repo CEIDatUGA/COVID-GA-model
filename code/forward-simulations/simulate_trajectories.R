@@ -107,15 +107,29 @@ simulate_trajectories <- function(
     last_time <- obs_sim %>%
       filter(time == max(time)) %>%
       dplyr::select(.id, mle_id, cases, deaths)
-    dat <- last_time %>%
-      filter(.id == "data")
+    dat <- obs_sim %>%
+      dplyr::select(.id, mle_id, cases, deaths) %>%
+      filter(.id == "data") %>%
+      tail(7)
+    ma <- function(x) {
+      window <- 7
+      n <- c(seq.int(window), rep(window, length(x)-window))
+      xm <- ceiling(data.table::frollmean(x, n, adaptive=TRUE, na.rm = T))
+      xm[is.nan(xm)] <- NA 
+      return(xm)
+    }
+    dat <- dat %>%
+      mutate(cases = ma(cases),
+             deaths = ma(deaths)) %>%
+      tail(1)
+    
     init_id <- last_time %>%
       filter(.id != "data") %>%
       mutate(obs_cases = dat$cases,
              # obs_hosps = dat$hosps,
              obs_deaths = dat$deaths) %>%
-      mutate(dif1 = abs(obs_cases - cases) / obs_cases,
-             dif3 = abs(obs_deaths - deaths) / obs_deaths) %>%
+      mutate(dif1 = abs(obs_cases - cases) / (obs_cases+1),
+             dif3 = abs(obs_deaths - deaths) / (obs_deaths+1)) %>%
       group_by(.id, mle_id) %>%
       mutate(totdif = sum(c(dif1, dif3), na.rm = TRUE)) %>%
       ungroup() %>%
@@ -154,7 +168,7 @@ simulate_trajectories <- function(
       covars <- as.data.frame(covars) %>%
         mutate(time = 1:n()) %>%
         rename("rel_beta_change" = covars)
-      trend_sim <- rep(mean(tail(trend, 30)), nrow(covars))
+      trend_sim <- rep(mean(tail(trend, 30)[1:20]), nrow(covars))
     }
     
     if(covar_action == "more_sd") {
@@ -233,6 +247,9 @@ simulate_trajectories <- function(
                               params = param_vals,
                               nsim = nsims, 
                               format="data.frame")
+    
+    # ggplot(sim_out, aes(x = time, y = D_new, group = .id)) +
+    #   geom_line(alpha = 0.4)
     # par(mfrow = c(2,1))
     # plot(c(pomp_data %>% filter(Variable == "Acases") %>% pull(Value), sim_out$C_new), type = "l")
     # plot(c(pomp_data %>% filter(Variable == "Cdeaths") %>% pull(Value), sim_out$D_new), type = "l")
