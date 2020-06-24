@@ -295,7 +295,7 @@ knitr::include_graphics(here("docs",'pomp-model.png'))
 The following interventions are implemented:
 
 * Social distancing is assumed to reduce all transmission rates by some factor. This is provided as a covariate based on mobility data.
-* Improving detection, which is assumed to increase sigmoidally up to a maximum value.
+* Decreasing time to diagnosis, which speeds up the transition from the detected class (I_sd) to the diagnosed cases class (C).
 * Improving detection, which is assumed to increase the fraction of symptomatic individuals that move into the $I_{sd}$ compartment and will eventually be diagnosed. It is assumed to increase sigmoidally up to a maximum value.
 
 ### Parameterization
