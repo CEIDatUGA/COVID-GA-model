@@ -474,8 +474,9 @@ ggplot(cumulative_summs, aes(x = SimType, color = SimType)) +
   facet_wrap(~Variable, ncol = 3, scales = "free_x", labeller = labeller(Variable = variable_names_cum)) +
   ylab("Number of persons") +
   xlab("") +
-  scale_y_continuous(labels = scales::comma, trans = "log",
-                     limits = c(1000,10000000), breaks = c(1000,10000,100000,1000000))+
+  # scale_y_continuous(labels = scales::comma, trans = "log",
+  #                    limits = c(1000,10000000), breaks = c(1000,10000,100000,1000000))+
+  scale_y_continuous(labels = scales::comma, trans = "log") +
   scale_x_discrete(labels = scen_labs) +
   theme_minimal() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
@@ -515,8 +516,9 @@ ggplot(all_summs, aes(x = Date,  color = SimType)) +
   scale_color_manual(values = mycols.vec.filt, name = "", labels = scen_labs) +
   theme_minimal() +
   ylab("Number of persons") +
-  scale_y_continuous(labels = scales::comma, trans = "log",
-                     limits = c(1,100000), breaks = c(10,100,1000,10000,100000))+
+  # scale_y_continuous(labels = scales::comma, trans = "log",
+  #                    limits = c(1,100000), breaks = c(10,100,1000,10000,100000))+
+  scale_y_continuous(labels = scales::comma, trans = "log")+
   theme_minimal() +
   theme(legend.position = "top") -> allscenslog
 ggsave(paste0(fig_outpath, "/all-projs-line-log.png"),
@@ -594,6 +596,16 @@ ggsave(paste0(fig_outpath, "/infections-trajs-nat.png"),
        width = 8.5, height = 4,
        units = "in", dpi = 300)
 
+# Daily numbers over time
+dailycases.ymax <- all_summs %>% filter(Variable == "Acases") %>% pull(upper) %>% max()
+dailycases.ylim <- c(0, plyr::round_any(dailycases.ymax, 1000, f = ceiling))
+
+dailydeaths.ymax <- all_summs %>% filter(Variable == "Cdeaths") %>% pull(upper) %>% max()
+dailydeaths.ylim <- c(0, plyr::round_any(dailydeaths.ymax, 1000, f = ceiling))
+
+dailyhosps.ymax <- all_summs %>% filter(Variable == "Bhosps") %>% pull(upper) %>% max()
+dailyhosps.ylim <- c(0, plyr::round_any(dailyhosps.ymax, 1000, f = ceiling))
+
 # Cases
 
 pomp_data <- pomp_data %>%
@@ -621,7 +633,7 @@ ggplot(all_summs %>%
   theme(legend.position = "top") +
   # theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
   ggtitle("New daily cases") +
-  coord_cartesian(ylim = c(0, 3000)) -> pcasesnat
+  coord_cartesian(ylim = dailycases.ylim) -> pcasesnat
 ggsave(paste0(fig_outpath, "/cases-trajs-nat.png"),
        plot = pcasesnat,
        width = 5, height = 6,
@@ -650,7 +662,7 @@ ggplot(all_summs %>%
   theme(legend.position = "top") +
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
   ggtitle("New daily hospitalizations") +
-  coord_cartesian(ylim = c(0, 1000)) -> phospsnat
+  coord_cartesian(ylim = dailyhosps.ylim) -> phospsnat
 ggsave(paste0(fig_outpath, "/hosps-trajs-nat.png"),
        plot = phospsnat,
        width = 8.5, height = 3,
@@ -679,7 +691,7 @@ ggplot(all_summs %>%
   theme(legend.position = "top") +
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
   ggtitle("New daily deaths") +
-  coord_cartesian(ylim = c(0, 150)) -> pdeathsnat
+  coord_cartesian(ylim = dailydeaths.ylim) -> pdeathsnat
 ggsave(paste0(fig_outpath, "/deaths-trajs-nat.png"),
        plot = pdeathsnat,
        width = 5, height = 6,
@@ -697,7 +709,7 @@ ggplot(infection_summaries, aes(x = Date, color = Period, fill = Period)) +
   theme_minimal() +
   ylab("Number of persons") +
   scale_y_continuous(labels = scales::comma, trans = "log",
-                     limits = c(100,10000000), breaks = c(100,1000,10000,100000,1000000,10000000)) +
+                     limits = c(100,dailycases.ylim[2]), breaks = c(100,1000,10000,100000,1000000,10000000)) +
   theme_minimal() +
   theme(legend.position = "top") +
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
