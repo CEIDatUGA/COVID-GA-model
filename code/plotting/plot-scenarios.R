@@ -577,6 +577,9 @@ infection_summaries <- out_sims %>%
 # filter out scenarios
 infection_summaries <- infection_summaries %>% filter(SimType != "3Relax social distancing")
 
+infections.ymax <- infection_summaries %>% pull(upper) %>% max()
+infections.ylim <- c(0, plyr::round_any(infections.ymax, 1000, f = ceiling))
+
 collabs <- c("Past", "Future")
 ggplot(infection_summaries, aes(x = Date, color = Period, fill = Period)) +
   geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2, color = NA) +
@@ -700,6 +703,7 @@ ggsave(paste0(fig_outpath, "/deaths-trajs-nat.png"),
 
 ## TODO remove reibbons from past for all log plots
 ## LOG SCALE
+infections.ylim.log10 <- c(2,ceiling(log10(infections.ylim[2])))
 ggplot(infection_summaries, aes(x = Date, color = Period, fill = Period)) +
   geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2, color = NA) +
   geom_line(aes(y = ptvalue)) +
@@ -709,7 +713,8 @@ ggplot(infection_summaries, aes(x = Date, color = Period, fill = Period)) +
   theme_minimal() +
   ylab("Number of persons") +
   scale_y_continuous(labels = scales::comma, trans = "log",
-                     limits = c(100,dailycases.ylim[2]), breaks = c(100,1000,10000,100000,1000000,10000000)) +
+                     limits = 10^infections.ylim.log10, 
+                     breaks = 10^full_seq(infections.ylim.log10,1)) +
   theme_minimal() +
   theme(legend.position = "top") +
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
@@ -720,6 +725,7 @@ ggsave(paste0(fig_outpath, "/infections-trajs-log.png"),
        units = "in", dpi = 300)
 
 # Cases
+dailycases.ylim.log10 <- c(2,ceiling(log10(dailycases.ylim[2])))
 ggplot(all_summs %>%
          filter(Variable == "Acases"),
        aes(x = Date, color = Period, fill = Period)) +
@@ -735,7 +741,8 @@ ggplot(all_summs %>%
   theme_minimal() +
   ylab("Number of persons") +
   scale_y_continuous(labels = scales::comma, trans = "log",
-                     limits = c(1,3300000), breaks = c(10,100,1000,10000,100000)) +
+                     limits = 10^dailycases.ylim.log10, 
+                     breaks = 10^full_seq(dailycases.ylim.log10,1)) +
   theme_minimal() +
   theme(legend.position = "top") +
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
@@ -746,6 +753,7 @@ ggsave(paste0(fig_outpath, "/cases-trajs-log.png"),
        units = "in", dpi = 300)
 
 # Hosps
+dailyhosps.ylim.log10 <- c(2,ceiling(log10(dailyhosps.ylim[2])))
 ggplot(all_summs %>%
          filter(Variable == "Bhosps"),
        aes(x = Date, color = Period, fill = Period)) +
@@ -761,7 +769,8 @@ ggplot(all_summs %>%
   theme_minimal() +
   ylab("Number of persons") +
   scale_y_continuous(labels = scales::comma, trans = "log",
-                     limits = c(1,100000), breaks = c(10,100,1000,10000,100000)) +
+                     limits = 10^dailyhosps.ylim.log10, 
+                     breaks = 10^full_seq(dailyhosps.ylim.log10,1)) +
   theme_minimal() +
   theme(legend.position = "top") +
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
@@ -772,6 +781,7 @@ ggsave(paste0(fig_outpath, "/hosps-trajs-log.png"),
        units = "in", dpi = 300)
 
 # Deaths
+dailydeaths.ylim.log10 <- c(2,ceiling(log10(dailydeaths.ylim[2])))
 ggplot(all_summs %>%
          filter(Variable == "Cdeaths"),
        aes(x = Date, color = Period, fill = Period)) +
@@ -787,7 +797,8 @@ ggplot(all_summs %>%
   theme_minimal() +
   ylab("Number of persons") +
   scale_y_continuous(labels = scales::comma, trans = "log",
-                     limits = c(1,20000), breaks = c(10,100,1000,10000,100000)) +
+                     limits = 10^dailydeaths.ylim.log10, 
+                     breaks = 10^full_seq(dailydeaths.ylim.log10,1)) +
   theme_minimal() +
   theme(legend.position = "top") +
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
